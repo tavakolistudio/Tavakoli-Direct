@@ -1,0 +1,642 @@
+// Tavakoli Direct — Prisma schema
+// Conventions: CUID ids, UTC timestamps, soft-delete via deletedAt where useful.
+// Encrypted credentials live in a separate table from public account data.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Enums ──────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+}
+
+enum TriggerType {
+  DM_KEYWORD
+  COMMENT_KEYWORD
+  STORY_REPLY_KEYWORD
+  OUTSIDE_BUSINESS_HOURS
+  NO_RULE_MATCHED
+}
+
+enum KeywordMatchMode {
+  EXACT
+  CONTAINS
+  STARTS_WITH
+  ANY_OF
+}
+
+enum ActionType {
+  SEND_TEXT
+  SEND_IMAGE
+  SEND_LINK
+  SEND_QUICK_REPLIES
+  WAIT
+  ADD_TAG
+  REMOVE_TAG
+  SAVE_VALUE
+  UPDATE_LEAD_STATUS
+  ASSIGN_OPERATOR
+  NEEDS_HUMAN
+  PAUSE_AUTOMATION
+  END_AUTOMATION
+}
+
+enum AutomationStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum ConversationStatus {
+  OPEN
+  NEEDS_HUMAN
+  WAITING_CUSTOMER
+  FOLLOW_UP
+  RESOLVED
+}
+
+enum LeadStatus {
+  NEW
+  NEEDS_FOLLOW_UP
+  CONTACTED
+  POTENTIAL
+  WON
+  LOST
+  CLOSED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  LINK
+  QUICK_REPLIES
+  STORY_REPLY
+  SYSTEM
+}
+
+enum MessageSenderType {
+  CONTACT
+  AUTOMATION
+  OPERATOR
+  SYSTEM
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum HandoffReason {
+  NO_RULE_MATCHED
+  CUSTOMER_REQUESTED_HUMAN
+  INVALID_PHONE
+  PROVIDER_ERROR
+  OPERATOR_PAUSED
+  SENSITIVE_MESSAGE
+  SCENARIO_COMPLETED
+}
+
+enum AccountStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+  PENDING
+}
+
+enum TokenStatus {
+  VALID
+  EXPIRING
+  EXPIRED
+  MISSING
+}
+
+enum WebhookStatus {
+  UNKNOWN
+  VERIFIED
+  FAILED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  QUEUED
+  PROCESSED
+  DUPLICATE
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  DEAD
+}
+
+enum ExecutionStatus {
+  MATCHED
+  SKIPPED
+  EXECUTED
+  BLOCKED
+  FAILED
+}
+
+// ─────────────────────────────── Auth ───────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(OPERATOR)
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  sessions             Session[]
+  clientAccess         ClientUserAccess[]
+  assignments          ConversationAssignment[]
+  authoredNotes        InternalNote[]
+  auditLogs            AuditLog[]
+  operatorMessages     Message[]                @relation("OperatorMessages")
+  assignedLeads        Lead[]                   @relation("LeadOwner")
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Hash of the session token (the raw JWT lives only in the cookie).
+  tokenHash String   @unique
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────── Clients ────────────────────────────────────
+
+model Client {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  logoAssetId   String?
+  description   String?
+  address       String?
+  phone         String?
+  whatsapp      String?
+  website       String?
+  // Weekly business hours + timezone stored as structured JSON (see core/business-hours).
+  businessHours Json?
+  defaultLanguage String @default("fa")
+  timeZone      String   @default("Asia/Tehran")
+  services      Json?
+  faqs          Json?
+  internalNotes String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  logoAsset         UploadedAsset?     @relation("ClientLogo", fields: [logoAssetId], references: [id])
+  instagramAccounts InstagramAccount[]
+  automations       Automation[]
+  contacts          Contact[]
+  conversations     Conversation[]
+  userAccess        ClientUserAccess[]
+
+  @@index([isActive])
+}
+
+// Which operators may access which clients (admins access all).
+model ClientUserAccess {
+  id        String   @id @default(cuid())
+  clientId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, userId])
+  @@index([userId])
+}
+
+// ─────────────────────── Instagram accounts & credentials ───────────────────
+
+model InstagramAccount {
+  id                 String        @id @default(cuid())
+  clientId           String
+  // Provider-scoped id of the Instagram professional account (unique).
+  providerAccountId  String        @unique
+  username           String
+  profilePictureUrl  String?
+  status             AccountStatus @default(PENDING)
+  tokenStatus        TokenStatus   @default(MISSING)
+  webhookStatus      WebhookStatus @default(UNKNOWN)
+  automationEnabled  Boolean       @default(true)
+  lastWebhookAt      DateTime?
+  lastSyncedAt       DateTime?
+  connectionError    String?
+  // Which provider produced this account: mock | meta.
+  provider           String        @default("mock")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  deletedAt          DateTime?
+
+  client        Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  credential    InstagramCredential?
+  capabilities  ProviderCapability[]
+  automations   Automation[]
+  contacts      Contact[]
+  conversations Conversation[]
+  webhookEvents WebhookEvent[]
+  outboundJobs  OutboundJob[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+// Encrypted tokens, isolated from public account data. Never exposed to the browser.
+model InstagramCredential {
+  id                  String   @id @default(cuid())
+  accountId           String   @unique
+  // AES-256-GCM ciphertext (base64) of the long-lived access token.
+  encryptedToken      String
+  tokenIv             String
+  tokenAuthTag        String
+  scopes              String[]
+  expiresAt           DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+// Per-account provider capability flags (e.g. story replies, quick replies).
+model ProviderCapability {
+  id        String   @id @default(cuid())
+  accountId String
+  key       String
+  available Boolean  @default(false)
+  detail    String?
+  updatedAt DateTime @updatedAt
+
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, key])
+}
+
+// ─────────────────────────────── Automations ────────────────────────────────
+
+model Automation {
+  id                      String           @id @default(cuid())
+  clientId                String
+  instagramAccountId      String
+  name                    String
+  status                  AutomationStatus @default(DRAFT)
+  priority                Int              @default(0)
+  cooldownSeconds         Int              @default(0)
+  maxExecutionsPerContact Int?
+  startsAt                DateTime?
+  endsAt                  DateTime?
+  // Behavior when a step errors / when handing off to a human.
+  handoffOnError          Boolean          @default(true)
+  executionCount          Int              @default(0)
+  lastExecutedAt          DateTime?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  deletedAt               DateTime?
+
+  client           Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  instagramAccount InstagramAccount      @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+  trigger          AutomationTrigger?
+  steps            AutomationStep[]
+  executions       AutomationExecution[]
+  messages         Message[]
+
+  @@index([instagramAccountId, status])
+  @@index([clientId])
+}
+
+model AutomationTrigger {
+  id            String           @id @default(cuid())
+  automationId  String           @unique
+  type          TriggerType
+  matchMode     KeywordMatchMode?
+  keywords      String[]
+  // For COMMENT_KEYWORD: optional specific post/reel and public reply text.
+  mediaId       String?
+  publicReply   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+}
+
+model AutomationStep {
+  id           String     @id @default(cuid())
+  automationId String
+  order        Int
+  actionType   ActionType
+  // Action-specific config (text, url, tag, delayMs, quick replies, etc.).
+  config       Json
+  createdAt    DateTime   @default(now())
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, order])
+}
+
+model AutomationExecution {
+  id             String          @id @default(cuid())
+  automationId   String
+  conversationId String?
+  contactId      String?
+  status         ExecutionStatus
+  matchedKeyword String?
+  reason         String?
+  // Full decision trace for auditability (which rules matched/skipped and why).
+  trace          Json?
+  errorCategory  String?
+  createdAt      DateTime        @default(now())
+
+  automation   Automation    @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([automationId])
+  @@index([contactId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────── Contacts, leads ────────────────────────────────
+
+model Contact {
+  id                 String   @id @default(cuid())
+  clientId           String
+  instagramAccountId String
+  // Instagram-scoped user id (unique per account).
+  scopedUserId       String
+  username           String?
+  displayName        String?
+  phone              String?
+  email              String?
+  firstInteractionAt DateTime @default(now())
+  lastInteractionAt  DateTime @default(now())
+  sourceAutomationId String?
+  sourcePostId       String?
+  internalNotes      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  client           Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  instagramAccount InstagramAccount      @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+  conversations    Conversation[]
+  lead             Lead?
+  tags             ContactTag[]
+  executions       AutomationExecution[]
+
+  @@unique([instagramAccountId, scopedUserId])
+  @@index([clientId])
+  @@index([lastInteractionAt])
+}
+
+model Lead {
+  id             String     @id @default(cuid())
+  contactId      String     @unique
+  status         LeadStatus @default(NEW)
+  assignedUserId String?
+  value          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  contact      Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedUser User?   @relation("LeadOwner", fields: [assignedUserId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  clientId  String?
+  name      String
+  color     String?
+  createdAt DateTime     @default(now())
+
+  contacts ContactTag[]
+
+  @@unique([clientId, name])
+}
+
+model ContactTag {
+  id        String   @id @default(cuid())
+  contactId String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, tagId])
+}
+
+// ─────────────────────── Conversations & messages ───────────────────────────
+
+model Conversation {
+  id                 String             @id @default(cuid())
+  clientId           String
+  instagramAccountId String
+  contactId          String
+  status             ConversationStatus @default(OPEN)
+  automationPaused   Boolean            @default(false)
+  needsHuman         Boolean            @default(false)
+  handoffReason      HandoffReason?
+  lastMessageAt      DateTime           @default(now())
+  lastInboundAt      DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  client           Client                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  instagramAccount InstagramAccount         @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+  contact          Contact                  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages         Message[]
+  notes            InternalNote[]
+  assignments      ConversationAssignment[]
+  executions       AutomationExecution[]
+
+  @@index([instagramAccountId, status])
+  @@index([clientId, status])
+  @@index([needsHuman])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id                    String            @id @default(cuid())
+  conversationId        String
+  direction             MessageDirection
+  type                  MessageType       @default(TEXT)
+  senderType            MessageSenderType
+  body                  String?
+  attachments           Json?
+  // Provider id for delivered/received messages (idempotency & dedupe).
+  providerMessageId     String?
+  deliveryStatus        DeliveryStatus    @default(PENDING)
+  automationId          String?
+  automationExecutionId String?
+  operatorId            String?
+  errorCategory         String?
+  errorDetail           String?
+  providerTimestamp     DateTime?
+  createdAt             DateTime          @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  automation   Automation?  @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  operator     User?        @relation("OperatorMessages", fields: [operatorId], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, providerMessageId])
+  @@index([conversationId, createdAt])
+  @@index([direction])
+}
+
+model InternalNote {
+  id             String   @id @default(cuid())
+  conversationId String
+  authorId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model ConversationAssignment {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  assignedAt     DateTime @default(now())
+  unassignedAt   DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([userId])
+}
+
+// ───────────────────── Webhooks, queues, assets ─────────────────────────────
+
+model WebhookEvent {
+  id                 String             @id @default(cuid())
+  instagramAccountId String?
+  // Deterministic idempotency key; duplicates are rejected.
+  idempotencyKey     String             @unique
+  eventKind          String
+  status             WebhookEventStatus @default(RECEIVED)
+  // Raw provider payload retained per retention policy; never contains secrets.
+  rawPayload         Json
+  signatureValid     Boolean            @default(false)
+  processedAt        DateTime?
+  errorCategory      String?
+  errorDetail        String?
+  attempts           Int                @default(0)
+  createdAt          DateTime           @default(now())
+
+  instagramAccount InstagramAccount? @relation(fields: [instagramAccountId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OutboundJob {
+  id                 String    @id @default(cuid())
+  instagramAccountId String
+  conversationId     String?
+  contactId          String?
+  // Idempotency key prevents duplicate sends after a successful provider response.
+  idempotencyKey     String    @unique
+  correlationId      String?
+  kind               String
+  payload            Json
+  status             JobStatus @default(PENDING)
+  attempts           Int       @default(0)
+  errorCategory      String?
+  errorDetail        String?
+  providerMessageId  String?
+  scheduledAt        DateTime?
+  processedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([instagramAccountId, status])
+}
+
+model UploadedAsset {
+  id           String   @id @default(cuid())
+  storageKey   String   @unique
+  url          String?
+  mimeType     String
+  sizeBytes    Int
+  originalName String?
+  createdAt    DateTime @default(now())
+
+  clientLogos Client[] @relation("ClientLogo")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String?
+  entityId   String?
+  // Safe, non-secret metadata only.
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}

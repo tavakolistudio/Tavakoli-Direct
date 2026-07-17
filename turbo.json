@@ -1,0 +1,44 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "AUTH_SECRET",
+    "APP_ENCRYPTION_KEY",
+    "APP_URL",
+    "WORKER_URL",
+    "INSTAGRAM_PROVIDER",
+    "META_APP_ID",
+    "META_APP_SECRET",
+    "META_VERIFY_TOKEN",
+    "META_GRAPH_API_VERSION",
+    "META_REDIRECT_URI",
+    "STORAGE_PROVIDER",
+    "STORAGE_BUCKET",
+    "STORAGE_ACCESS_KEY",
+    "STORAGE_SECRET_KEY",
+    "SENTRY_DSN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    }
+  }
+}

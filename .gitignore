@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# test / coverage
+coverage/
+playwright-report/
+test-results/
+.vitest/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# prisma
+packages/database/prisma/*.db
+packages/database/prisma/migrations/dev.db*
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# uploads (local storage)
+apps/web/.uploads/
+.uploads/
