@@ -1,4 +1,15 @@
-import { Badge, Card, CardContent, CardHeader, CardTitle, Table, TD, TH, THead, TR } from '@tavakoli/ui';
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TD,
+  TH,
+  THead,
+  TR,
+} from '@tavakoli/ui';
 import { PageHeader } from '@/components/page-header';
 import { ROLE_LABELS } from '@/lib/labels';
 import { formatRelativeFa } from '@/lib/dates';
@@ -43,12 +54,20 @@ export default async function TeamPage(): Promise<React.ReactElement> {
             {users.map((u) => (
               <TR key={u.id}>
                 <TD>{u.name}</TD>
-                <TD dir="ltr" className="text-right">{u.email}</TD>
-                <TD>
-                  <Badge tone={u.role === 'ADMIN' ? 'brand' : 'neutral'}>{ROLE_LABELS[u.role]}</Badge>
+                <TD dir="ltr" className="text-right">
+                  {u.email}
                 </TD>
                 <TD>
-                  {u.isActive ? <Badge tone="success">فعال</Badge> : <Badge tone="danger">غیرفعال</Badge>}
+                  <Badge tone={u.role === 'ADMIN' ? 'brand' : 'neutral'}>
+                    {ROLE_LABELS[u.role]}
+                  </Badge>
+                </TD>
+                <TD>
+                  {u.isActive ? (
+                    <Badge tone="success">فعال</Badge>
+                  ) : (
+                    <Badge tone="danger">غیرفعال</Badge>
+                  )}
                 </TD>
                 <TD>{formatRelativeFa(u.lastLoginAt)}</TD>
               </TR>

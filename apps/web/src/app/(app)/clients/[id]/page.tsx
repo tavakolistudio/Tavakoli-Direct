@@ -38,9 +38,15 @@ export default async function ClientDetailPage({
             <CardTitle>اطلاعات تماس</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-neutral-700">
-            <div>تلفن: <span dir="ltr">{client.phone ?? '—'}</span></div>
-            <div>واتساپ: <span dir="ltr">{client.whatsapp ?? '—'}</span></div>
-            <div>وب‌سایت: <span dir="ltr">{client.website ?? '—'}</span></div>
+            <div>
+              تلفن: <span dir="ltr">{client.phone ?? '—'}</span>
+            </div>
+            <div>
+              واتساپ: <span dir="ltr">{client.whatsapp ?? '—'}</span>
+            </div>
+            <div>
+              وب‌سایت: <span dir="ltr">{client.website ?? '—'}</span>
+            </div>
             <div>منطقه زمانی: {client.timeZone}</div>
             <div>ایجاد: {formatDateFa(client.createdAt)}</div>
           </CardContent>
@@ -60,8 +66,14 @@ export default async function ClientDetailPage({
               </p>
             ) : (
               client.instagramAccounts.map((a) => (
-                <div key={a.id} className="flex items-center justify-between border-b border-neutral-100 py-2 last:border-0">
-                  <Link href={`/instagram-accounts/${a.id}`} className="font-medium text-brand-dark hover:underline">
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between border-b border-neutral-100 py-2 last:border-0"
+                >
+                  <Link
+                    href={`/instagram-accounts/${a.id}`}
+                    className="text-brand-dark font-medium hover:underline"
+                  >
                     @{a.username}
                   </Link>
                   <Badge tone={a.status === 'CONNECTED' ? 'success' : 'warning'}>

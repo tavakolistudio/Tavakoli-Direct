@@ -17,10 +17,18 @@ function Submit(): React.ReactElement {
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }): React.ReactElement {
+function Step({
+  n,
+  title,
+  children,
+}: {
+  n: number;
+  title: string;
+  children: React.ReactNode;
+}): React.ReactElement {
   return (
     <fieldset className="rounded-lg border border-neutral-200 p-4">
-      <legend className="px-2 text-sm font-semibold text-brand-dark">
+      <legend className="text-brand-dark px-2 text-sm font-semibold">
         گام {n} — {title}
       </legend>
       <div className="space-y-3">{children}</div>
@@ -103,7 +111,14 @@ export function AutomationWizard({
           </div>
           <div>
             <Label htmlFor="cooldownSeconds">فاصله زمانی (ثانیه)</Label>
-            <Input id="cooldownSeconds" name="cooldownSeconds" type="number" defaultValue={0} min={0} dir="ltr" />
+            <Input
+              id="cooldownSeconds"
+              name="cooldownSeconds"
+              type="number"
+              defaultValue={0}
+              min={0}
+              dir="ltr"
+            />
           </div>
         </div>
       </Step>

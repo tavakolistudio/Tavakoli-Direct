@@ -38,9 +38,7 @@ export const PERSIAN_ERROR_MESSAGES: Record<ErrorCategory, string> = {
 /** Whether an error of this category should be retried by the queue. */
 export function isRetryable(category: ErrorCategory): boolean {
   return (
-    category === 'PROVIDER_RATE_LIMIT' ||
-    category === 'PROVIDER_TEMPORARY' ||
-    category === 'QUEUE'
+    category === 'PROVIDER_RATE_LIMIT' || category === 'PROVIDER_TEMPORARY' || category === 'QUEUE'
   );
 }
 

@@ -13,7 +13,8 @@ let cached: InstagramMessagingProvider | null = null;
 /** Return the configured provider (mock | meta). Cached per process. */
 export function getProvider(): InstagramMessagingProvider {
   if (cached) return cached;
-  cached = env.INSTAGRAM_PROVIDER === 'meta' ? new MetaInstagramProvider() : new MockInstagramProvider();
+  cached =
+    env.INSTAGRAM_PROVIDER === 'meta' ? new MetaInstagramProvider() : new MockInstagramProvider();
   return cached;
 }
 

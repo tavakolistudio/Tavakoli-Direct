@@ -24,12 +24,24 @@ export function StatusControls({
           فعال‌سازی
         </Button>
       ) : (
-        <Button size="sm" variant="outline" onClick={() => set('PAUSED')} disabled={pending} type="button">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => set('PAUSED')}
+          disabled={pending}
+          type="button"
+        >
           توقف
         </Button>
       )}
       {status !== 'ARCHIVED' ? (
-        <Button size="sm" variant="ghost" onClick={() => set('ARCHIVED')} disabled={pending} type="button">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => set('ARCHIVED')}
+          disabled={pending}
+          type="button"
+        >
           بایگانی
         </Button>
       ) : null}

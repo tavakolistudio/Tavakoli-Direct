@@ -66,7 +66,9 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
                 >
                   <div className="min-w-0">
                     <span className="font-medium text-neutral-800">
-                      {m.conversation.contact.displayName ?? m.conversation.contact.username ?? 'مخاطب'}
+                      {m.conversation.contact.displayName ??
+                        m.conversation.contact.username ??
+                        'مخاطب'}
                     </span>
                     <span className="mx-2 text-neutral-400">
                       {m.direction === 'INBOUND' ? 'پیام دریافتی' : 'پاسخ ارسالی'}

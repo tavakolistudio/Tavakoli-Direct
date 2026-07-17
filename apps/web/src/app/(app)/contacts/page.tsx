@@ -57,7 +57,11 @@ export default async function ContactsPage({
       />
 
       <form className="mb-4 flex gap-2" action="/contacts">
-        <Input name="q" defaultValue={q ?? ''} placeholder="جستجو بر اساس نام کاربری، نام یا تلفن" />
+        <Input
+          name="q"
+          defaultValue={q ?? ''}
+          placeholder="جستجو بر اساس نام کاربری، نام یا تلفن"
+        />
         <Button type="submit" size="sm">
           جستجو
         </Button>
@@ -82,12 +86,17 @@ export default async function ContactsPage({
               {contacts.map((c) => (
                 <TR key={c.id}>
                   <TD>
-                    <Link href={`/contacts/${c.id}`} className="font-medium text-brand-dark hover:underline">
+                    <Link
+                      href={`/contacts/${c.id}`}
+                      className="text-brand-dark font-medium hover:underline"
+                    >
                       @{c.username ?? '—'}
                     </Link>
                   </TD>
                   <TD>{c.displayName ?? '—'}</TD>
-                  <TD dir="ltr" className="text-right">{c.phone ?? '—'}</TD>
+                  <TD dir="ltr" className="text-right">
+                    {c.phone ?? '—'}
+                  </TD>
                   <TD>{c.client.name}</TD>
                   <TD>
                     <Badge tone="info">{c.lead ? LEAD_STATUS_LABELS[c.lead.status] : '—'}</Badge>

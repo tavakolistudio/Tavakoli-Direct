@@ -11,11 +11,15 @@ export function StatCard({
   tone?: 'neutral' | 'brand' | 'warning';
 }): React.ReactElement {
   const valueColor =
-    tone === 'brand' ? 'text-brand-dark' : tone === 'warning' ? 'text-amber-600' : 'text-neutral-900';
+    tone === 'brand'
+      ? 'text-brand-dark'
+      : tone === 'warning'
+        ? 'text-amber-600'
+        : 'text-neutral-900';
   return (
     <Card className="p-4">
       <div className="text-sm text-neutral-500">{label}</div>
-      <div className={`mt-1 text-2xl font-bold tabular-fa ${valueColor}`}>
+      <div className={`tabular-fa mt-1 text-2xl font-bold ${valueColor}`}>
         {toPersianDigits(value)}
       </div>
     </Card>

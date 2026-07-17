@@ -30,27 +30,36 @@ export async function getDashboardStats(user: SessionUser): Promise<DashboardSta
   const since = startOfToday();
   const convScope = Object.keys(scope).length ? { conversation: scope } : {};
 
-  const [connectedAccounts, incomingToday, autoRepliesToday, commentRepliesToday, leadsToday, needsHuman, webhookErrors] =
-    await Promise.all([
-      prisma.instagramAccount.count({ where: { ...scope, status: 'CONNECTED', deletedAt: null } }),
-      prisma.message.count({
-        where: { direction: 'INBOUND', createdAt: { gte: since }, ...convScope },
-      }),
-      prisma.message.count({
-        where: {
-          direction: 'OUTBOUND',
-          senderType: 'AUTOMATION',
-          createdAt: { gte: since },
-          ...convScope,
-        },
-      }),
-      prisma.message.count({
-        where: { type: 'STORY_REPLY', createdAt: { gte: since }, ...convScope },
-      }),
-      prisma.contact.count({ where: { ...scope, firstInteractionAt: { gte: since } } }),
-      prisma.conversation.count({ where: { ...scope, needsHuman: true, status: { not: 'RESOLVED' } } }),
-      prisma.webhookEvent.count({ where: { status: 'FAILED' } }),
-    ]);
+  const [
+    connectedAccounts,
+    incomingToday,
+    autoRepliesToday,
+    commentRepliesToday,
+    leadsToday,
+    needsHuman,
+    webhookErrors,
+  ] = await Promise.all([
+    prisma.instagramAccount.count({ where: { ...scope, status: 'CONNECTED', deletedAt: null } }),
+    prisma.message.count({
+      where: { direction: 'INBOUND', createdAt: { gte: since }, ...convScope },
+    }),
+    prisma.message.count({
+      where: {
+        direction: 'OUTBOUND',
+        senderType: 'AUTOMATION',
+        createdAt: { gte: since },
+        ...convScope,
+      },
+    }),
+    prisma.message.count({
+      where: { type: 'STORY_REPLY', createdAt: { gte: since }, ...convScope },
+    }),
+    prisma.contact.count({ where: { ...scope, firstInteractionAt: { gte: since } } }),
+    prisma.conversation.count({
+      where: { ...scope, needsHuman: true, status: { not: 'RESOLVED' } },
+    }),
+    prisma.webhookEvent.count({ where: { status: 'FAILED' } }),
+  ]);
 
   return {
     connectedAccounts,

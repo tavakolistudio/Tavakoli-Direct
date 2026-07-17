@@ -5,7 +5,10 @@ import { connection } from './redis';
 /** Producer for outbound-message jobs (webhook processor enqueues these). */
 export const outboundQueue = new Queue(QUEUE_NAMES.outboundMessages, { connection });
 
-export async function enqueueOutbound(outboundJobId: string, idempotencyKey: string): Promise<void> {
+export async function enqueueOutbound(
+  outboundJobId: string,
+  idempotencyKey: string,
+): Promise<void> {
   await outboundQueue.add(
     'send',
     { outboundJobId, idempotencyKey },

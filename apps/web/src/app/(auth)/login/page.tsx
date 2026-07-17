@@ -10,10 +10,10 @@ export default async function LoginPage(): Promise<React.ReactElement> {
   if (user) redirect('/dashboard');
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
+    <main className="bg-canvas flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">
+          <div className="bg-brand mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold text-white">
             TD
           </div>
           <h1 className="text-xl font-bold text-neutral-900">{APP_NAME}</h1>

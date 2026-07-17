@@ -8,30 +8,54 @@
  *
  * Normalization is intentionally conservative: it unifies letter forms and
  * strips noise, but does not stem or transliterate.
+ *
+ * Character classes for diacritics and zero-width characters are built from
+ * explicit code-point ranges (not literal regex classes) so the source contains
+ * no invisible characters.
  */
 
-/** Arabic-Indic (٠-٩) and Persian (۰-۹) digit code point bases. */
+/** Arabic-Indic (U+0660-9) and Persian (U+06F0-9) digit code point bases. */
 const ARABIC_INDIC_ZERO = 0x0660;
 const PERSIAN_ZERO = 0x06f0;
 
-/** Diacritics / tashkeel to remove (harakat, tatweel, etc.). */
-// eslint-disable-next-line no-misleading-character-class
-const DIACRITICS = /[ؐ-ًؚ-ٰٟۖ-ۭـ]/g;
+/** Build a global-match character-class RegExp from inclusive code-point ranges. */
+function classFromRanges(ranges: ReadonlyArray<readonly [number, number]>): RegExp {
+  const body = ranges
+    .map(([a, b]) =>
+      a === b ? String.fromCodePoint(a) : `${String.fromCodePoint(a)}-${String.fromCodePoint(b)}`,
+    )
+    .join('');
+  return new RegExp(`[${body}]`, 'gu');
+}
 
-/** Zero-width characters: ZWNJ, ZWJ, ZWSP, ZWNBSP/BOM, LRM/RLM marks. */
-const ZERO_WIDTH = /[​‌‍‎‏﻿]/g;
+/**
+ * Diacritics / tashkeel to remove: harakat (U+064B-U+0652), superscript alef
+ * (U+0670), tatweel/kashida (U+0640), and Quranic marks (U+06D6-U+06ED).
+ */
+const DIACRITICS = classFromRanges([
+  [0x064b, 0x0652],
+  [0x0670, 0x0670],
+  [0x0640, 0x0640],
+  [0x06d6, 0x06ed],
+]);
 
-/** Letter unification map: Arabic forms → Persian canonical forms. */
+/** Zero-width chars: ZWSP, ZWNJ, ZWJ, LRM, RLM (U+200B-U+200F) and BOM (U+FEFF). */
+const ZERO_WIDTH = classFromRanges([
+  [0x200b, 0x200f],
+  [0xfeff, 0xfeff],
+]);
+
+/** Letter unification map: Arabic forms -> Persian canonical forms. */
 const LETTER_MAP: Record<string, string> = {
-  'ي': 'ی', // ي (Arabic yeh) → ی (Persian yeh)
-  'ى': 'ی', // ى (alef maksura) → ی
-  'ك': 'ک', // ك (Arabic kaf) → ک (Persian kaf)
-  'ة': 'ه', // ة (teh marbuta) → ه
-  'أ': 'ا', // أ → ا
-  'إ': 'ا', // إ → ا
-  'آ': 'ا', // آ → ا
-  'ؤ': 'و', // ؤ → و
-  'ئ': 'ی', // ئ → ی
+  ي: 'ی', // Arabic yeh -> Persian yeh
+  ى: 'ی', // alef maksura -> yeh
+  ك: 'ک', // Arabic kaf -> Persian kaf
+  ة: 'ه', // teh marbuta -> heh
+  أ: 'ا', // alef with hamza above -> alef
+  إ: 'ا', // alef with hamza below -> alef
+  آ: 'ا', // alef madda -> alef
+  ؤ: 'و', // waw with hamza -> waw
+  ئ: 'ی', // yeh with hamza -> yeh
 };
 
 /** Convert any Persian/Arabic-Indic digit in the string to a Latin digit. */
@@ -60,19 +84,20 @@ export function unifyLetters(input: string): string {
 }
 
 /**
- * Collapse Persian, Arabic, and common Latin punctuation to spaces so keyword
- * boundaries are consistent. Keeps letters, digits, and combining marks intact.
+ * Collapse any character that is not a letter, digit, or whitespace to a space,
+ * so keyword boundaries are consistent across Persian, Arabic, and Latin
+ * punctuation. Diacritics are already removed before this step.
  */
 function stripPunctuation(input: string): string {
-  return input.replace(/[!-\/:-@\[-`{-~؛،؟…«»”“‘’—–]/g, ' ');
+  return input.replace(/[^\p{L}\p{N}\s]/gu, ' ');
 }
 
 /**
  * Full normalization pipeline used for keyword matching.
  *
- * Steps: Unicode NFC → remove zero-width chars → remove diacritics/tatweel →
- * unify Arabic→Persian letters → normalize digits → lowercase (for Latin) →
- * strip punctuation → collapse whitespace → trim.
+ * Steps: Unicode NFC -> remove zero-width chars -> remove diacritics/tatweel ->
+ * unify Arabic->Persian letters -> normalize digits -> lowercase (for Latin) ->
+ * strip punctuation -> collapse whitespace -> trim.
  */
 export function normalizePersian(input: string): string {
   if (!input) return '';

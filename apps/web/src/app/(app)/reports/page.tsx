@@ -24,8 +24,12 @@ export default async function ReportsPage(): Promise<React.ReactElement> {
     failures,
   ] = await Promise.all([
     prisma.message.count({ where: { direction: 'INBOUND', ...convScope } }),
-    prisma.message.count({ where: { direction: 'OUTBOUND', senderType: 'AUTOMATION', ...convScope } }),
-    prisma.message.count({ where: { direction: 'OUTBOUND', senderType: 'OPERATOR', ...convScope } }),
+    prisma.message.count({
+      where: { direction: 'OUTBOUND', senderType: 'AUTOMATION', ...convScope },
+    }),
+    prisma.message.count({
+      where: { direction: 'OUTBOUND', senderType: 'OPERATOR', ...convScope },
+    }),
     prisma.message.count({ where: { type: 'STORY_REPLY', ...convScope } }),
     prisma.contact.count({ where: { ...scope } }),
     prisma.conversation.count({ where: { ...scope, needsHuman: true } }),
@@ -70,7 +74,10 @@ export default async function ReportsPage(): Promise<React.ReactElement> {
             <p className="text-neutral-500">داده‌ای برای نمایش نیست.</p>
           ) : (
             byClient.map((b) => (
-              <div key={b.clientId} className="flex justify-between border-b border-neutral-100 py-2 last:border-0">
+              <div
+                key={b.clientId}
+                className="flex justify-between border-b border-neutral-100 py-2 last:border-0"
+              >
                 <span>{nameOf(b.clientId)}</span>
                 <span className="tabular-fa text-neutral-600">{b._count._all} گفتگو</span>
               </div>

@@ -11,5 +11,8 @@ export async function runMaintenance(): Promise<void> {
   const result = await prisma.webhookEvent.deleteMany({
     where: { createdAt: { lt: cutoff }, status: { in: ['PROCESSED', 'DUPLICATE'] } },
   });
-  log.info('maintenance: webhook retention cleanup', { deleted: result.count, cutoff: cutoff.toISOString() });
+  log.info('maintenance: webhook retention cleanup', {
+    deleted: result.count,
+    cutoff: cutoff.toISOString(),
+  });
 }

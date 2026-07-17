@@ -43,12 +43,18 @@ export default async function ContactDetailPage({
             <CardTitle>اطلاعات</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-neutral-700">
-            <div>تلفن: <span dir="ltr">{contact.phone ?? '—'}</span></div>
-            <div>ایمیل: <span dir="ltr">{contact.email ?? '—'}</span></div>
+            <div>
+              تلفن: <span dir="ltr">{contact.phone ?? '—'}</span>
+            </div>
+            <div>
+              ایمیل: <span dir="ltr">{contact.email ?? '—'}</span>
+            </div>
             <div>پیج: @{contact.instagramAccount.username}</div>
             <div>
               وضعیت سرنخ:{' '}
-              <Badge tone="info">{contact.lead ? LEAD_STATUS_LABELS[contact.lead.status] : '—'}</Badge>
+              <Badge tone="info">
+                {contact.lead ? LEAD_STATUS_LABELS[contact.lead.status] : '—'}
+              </Badge>
             </div>
             <div>اولین تعامل: {formatDateFa(contact.firstInteractionAt)}</div>
             <div>آخرین تعامل: {formatDateFa(contact.lastInteractionAt)}</div>

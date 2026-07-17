@@ -55,7 +55,13 @@ async function main(): Promise<void> {
       website: 'https://tavakoli.studio',
       timeZone: 'Asia/Tehran',
       businessHours: defaultBusinessHours('Asia/Tehran') as object,
-      services: ['عکاسی عروسی', 'عکاسی تبلیغاتی', 'مدیریت اینستاگرام', 'طراحی سایت', 'خدمات هوش مصنوعی'],
+      services: [
+        'عکاسی عروسی',
+        'عکاسی تبلیغاتی',
+        'مدیریت اینستاگرام',
+        'طراحی سایت',
+        'خدمات هوش مصنوعی',
+      ],
       faqs: [{ q: 'ساعات کاری؟', a: 'شنبه تا چهارشنبه ۹ تا ۱۸' }],
       isActive: true,
     },
@@ -87,7 +93,12 @@ async function main(): Promise<void> {
   await prisma.providerCapability.upsert({
     where: { accountId_key: { accountId: account.id, key: 'STORY_REPLY' } },
     update: { available: false },
-    create: { accountId: account.id, key: 'STORY_REPLY', available: false, detail: 'Not enabled in mock' },
+    create: {
+      accountId: account.id,
+      key: 'STORY_REPLY',
+      available: false,
+      detail: 'Not enabled in mock',
+    },
   });
   await prisma.providerCapability.upsert({
     where: { accountId_key: { accountId: account.id, key: 'QUICK_REPLIES' } },
@@ -194,7 +205,9 @@ async function main(): Promise<void> {
 
   for (const [i, c] of contacts.entries()) {
     const contact = await prisma.contact.upsert({
-      where: { instagramAccountId_scopedUserId: { instagramAccountId: account.id, scopedUserId: c.scoped } },
+      where: {
+        instagramAccountId_scopedUserId: { instagramAccountId: account.id, scopedUserId: c.scoped },
+      },
       update: {},
       create: {
         clientId: client.id,

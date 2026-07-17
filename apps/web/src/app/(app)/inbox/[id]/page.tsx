@@ -36,7 +36,7 @@ export default async function ConversationPage({
   return (
     <div>
       <div className="mb-4">
-        <Link href="/inbox" className="text-sm text-brand-dark hover:underline">
+        <Link href="/inbox" className="text-brand-dark text-sm hover:underline">
           ← بازگشت به صندوق
         </Link>
       </div>
@@ -47,7 +47,9 @@ export default async function ConversationPage({
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle>
               {conv.contact.displayName ?? conv.contact.username ?? 'مخاطب'}{' '}
-              <span className="text-xs font-normal text-neutral-400">@{conv.instagramAccount.username}</span>
+              <span className="text-xs font-normal text-neutral-400">
+                @{conv.instagramAccount.username}
+              </span>
             </CardTitle>
             <Badge tone={conv.status === 'RESOLVED' ? 'success' : 'info'}>
               {CONVERSATION_STATUS_LABELS[conv.status]}
@@ -71,7 +73,7 @@ export default async function ConversationPage({
                         isInbound
                           ? 'bg-neutral-100 text-neutral-900'
                           : isAutomation
-                            ? 'border border-brand/30 bg-brand/5 text-neutral-900'
+                            ? 'border-brand/30 bg-brand/5 border text-neutral-900'
                             : 'bg-brand text-white'
                       }`}
                     >
@@ -96,7 +98,10 @@ export default async function ConversationPage({
                 <div className="mt-4 border-t border-dashed border-neutral-200 pt-3">
                   <div className="mb-2 text-xs font-medium text-amber-700">یادداشت‌های داخلی</div>
                   {conv.notes.map((n) => (
-                    <div key={n.id} className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    <div
+                      key={n.id}
+                      className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                    >
                       <p>{n.body}</p>
                       <div className="mt-1 text-[11px] text-amber-600">
                         {n.author.name} · {formatDateTimeFa(n.createdAt)}
@@ -117,14 +122,19 @@ export default async function ConversationPage({
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-neutral-700">
               <div>نام کاربری: @{conv.contact.username ?? '—'}</div>
-              <div>تلفن: <span dir="ltr">{conv.contact.phone ?? '—'}</span></div>
+              <div>
+                تلفن: <span dir="ltr">{conv.contact.phone ?? '—'}</span>
+              </div>
               <div>
                 وضعیت سرنخ:{' '}
                 <Badge tone="info">
                   {conv.contact.lead ? LEAD_STATUS_LABELS[conv.contact.lead.status] : '—'}
                 </Badge>
               </div>
-              <Link href={`/contacts/${conv.contact.id}`} className="text-brand-dark hover:underline">
+              <Link
+                href={`/contacts/${conv.contact.id}`}
+                className="text-brand-dark hover:underline"
+              >
                 مشاهده پروفایل مخاطب
               </Link>
             </CardContent>

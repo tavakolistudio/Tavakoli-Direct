@@ -65,7 +65,9 @@ export default async function InboxPage({
             key={f.key}
             href={`/inbox?filter=${f.key}`}
             className={`rounded-full px-3 py-1.5 text-sm ${
-              filter === f.key ? 'bg-brand text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              filter === f.key
+                ? 'bg-brand text-white'
+                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
             }`}
           >
             {f.label}
@@ -97,7 +99,9 @@ export default async function InboxPage({
                   <Badge tone={c.status === 'RESOLVED' ? 'success' : 'info'}>
                     {CONVERSATION_STATUS_LABELS[c.status]}
                   </Badge>
-                  <div className="mt-1 text-xs text-neutral-400">{formatRelativeFa(c.lastMessageAt)}</div>
+                  <div className="mt-1 text-xs text-neutral-400">
+                    {formatRelativeFa(c.lastMessageAt)}
+                  </div>
                 </div>
               </div>
             </Link>

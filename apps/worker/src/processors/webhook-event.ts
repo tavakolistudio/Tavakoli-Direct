@@ -124,9 +124,15 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
   }
 
   // Build evaluation inputs.
-  const storyReplyAvailable = account.capabilities.some((c) => c.key === 'STORY_REPLY' && c.available);
-  const activeAutomations = account.automations.filter((a) => a.status === 'ACTIVE' || a.trigger?.type === 'NO_RULE_MATCHED');
-  const defs: AutomationDef[] = activeAutomations.map((a) => toAutomationDef(a, { storyReplyAvailable }));
+  const storyReplyAvailable = account.capabilities.some(
+    (c) => c.key === 'STORY_REPLY' && c.available,
+  );
+  const activeAutomations = account.automations.filter(
+    (a) => a.status === 'ACTIVE' || a.trigger?.type === 'NO_RULE_MATCHED',
+  );
+  const defs: AutomationDef[] = activeAutomations.map((a) =>
+    toAutomationDef(a, { storyReplyAvailable }),
+  );
 
   const { lastFiredAt, executionCount } = await loadFireState(
     activeAutomations.map((a) => a.id),
@@ -160,7 +166,13 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
   }
 
   // Winner executes: record + apply actions + enqueue message sends.
-  const execution = await recordExecution(winnerRow.id, conversation.id, contact.id, 'EXECUTED', result);
+  const execution = await recordExecution(
+    winnerRow.id,
+    conversation.id,
+    contact.id,
+    'EXECUTED',
+    result,
+  );
   await prisma.automation.update({
     where: { id: winnerRow.id },
     data: { executionCount: { increment: 1 }, lastExecutedAt: new Date() },
@@ -311,7 +323,11 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
         stepIndex: idx,
         payload:
           input.event.kind === 'COMMENT'
-            ? { commentId: input.event.commentId, text: cfg.text, recipientScopedId: input.event.senderScopedId }
+            ? {
+                commentId: input.event.commentId,
+                text: cfg.text,
+                recipientScopedId: input.event.senderScopedId,
+              }
             : { recipientScopedId: input.event.senderScopedId, text: cfg.text },
       });
       break;
@@ -323,7 +339,11 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
         kind: 'sendMedia',
         executionId: input.executionId,
         stepIndex: idx,
-        payload: { recipientScopedId: input.event.senderScopedId, mediaUrl: cfg.mediaUrl, caption: cfg.caption },
+        payload: {
+          recipientScopedId: input.event.senderScopedId,
+          mediaUrl: cfg.mediaUrl,
+          caption: cfg.caption,
+        },
       });
       break;
     case 'ADD_TAG':

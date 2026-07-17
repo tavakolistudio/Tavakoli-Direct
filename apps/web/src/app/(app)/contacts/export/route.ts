@@ -37,14 +37,24 @@ export async function GET(request: Request): Promise<Response> {
     include: { lead: true, client: true },
   });
 
-  const headers = ['username', 'displayName', 'phone', 'email', 'client', 'leadStatus', 'firstInteraction', 'lastInteraction'];
+  const headers = [
+    'username',
+    'displayName',
+    'phone',
+    'email',
+    'client',
+    'leadStatus',
+    'firstInteraction',
+    'lastInteraction',
+  ];
   const rows = contacts.map((c) => ({
     username: c.username ?? '',
     displayName: c.displayName ?? '',
     phone: c.phone ?? '',
     email: c.email ?? '',
     client: c.client.name,
-    leadStatus: c.lead && LEAD_STATUSES.includes(c.lead.status) ? LEAD_STATUS_LABELS[c.lead.status] : '',
+    leadStatus:
+      c.lead && LEAD_STATUSES.includes(c.lead.status) ? LEAD_STATUS_LABELS[c.lead.status] : '',
     firstInteraction: formatDateTimeFa(c.firstInteractionAt),
     lastInteraction: formatDateTimeFa(c.lastInteractionAt),
   }));

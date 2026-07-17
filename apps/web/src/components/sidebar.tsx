@@ -41,7 +41,7 @@ export function Sidebar({ role, userName }: SidebarProps): React.ReactElement {
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center gap-2 border-b border-neutral-100 px-5 py-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white">
+            <div className="bg-brand flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-white">
               TD
             </div>
             <div className="leading-tight">
@@ -61,7 +61,7 @@ export function Sidebar({ role, userName }: SidebarProps): React.ReactElement {
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
                     active
-                      ? 'bg-brand/10 font-medium text-brand-dark'
+                      ? 'bg-brand/10 text-brand-dark font-medium'
                       : 'text-neutral-600 hover:bg-neutral-100',
                   )}
                 >

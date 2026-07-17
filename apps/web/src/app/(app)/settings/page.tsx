@@ -49,7 +49,10 @@ export default async function SettingsPage(): Promise<React.ReactElement> {
                 <CardTitle>یکپارچه‌سازی Meta</CardTitle>
               </CardHeader>
               <CardContent>
-                <Link href="/settings/integrations/meta" className="text-brand-dark hover:underline">
+                <Link
+                  href="/settings/integrations/meta"
+                  className="text-brand-dark hover:underline"
+                >
                   مشاهده وضعیت اتصال و وبهوک
                 </Link>
               </CardContent>

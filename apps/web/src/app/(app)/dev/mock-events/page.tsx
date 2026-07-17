@@ -25,8 +25,8 @@ export default async function MockEventsPage(): Promise<React.ReactElement> {
         <CardContent>
           <MockPanel />
           <p className="mt-4 text-xs text-neutral-400">
-            رویدادهای تولیدشده از همان مسیر نرمال‌سازی، بررسی تکراری و صف پردازش رویدادهای واقعی عبور
-            می‌کنند. برای پردازش کامل، Redis و سرویس worker باید در حال اجرا باشند.
+            رویدادهای تولیدشده از همان مسیر نرمال‌سازی، بررسی تکراری و صف پردازش رویدادهای واقعی
+            عبور می‌کنند. برای پردازش کامل، Redis و سرویس worker باید در حال اجرا باشند.
           </p>
         </CardContent>
       </Card>

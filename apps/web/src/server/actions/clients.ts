@@ -59,7 +59,12 @@ export async function createClientAction(
     },
   });
 
-  await audit({ actorId: admin.id, action: 'CLIENT_CREATE', entityType: 'Client', entityId: client.id });
+  await audit({
+    actorId: admin.id,
+    action: 'CLIENT_CREATE',
+    entityType: 'Client',
+    entityId: client.id,
+  });
   revalidatePath('/clients');
   redirect(`/clients/${client.id}`);
 }

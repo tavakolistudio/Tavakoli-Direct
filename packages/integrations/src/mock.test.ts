@@ -25,7 +25,11 @@ describe('MockInstagramProvider', () => {
   });
 
   it('returns a synthetic provider message id on success', async () => {
-    const r = await provider.sendText({ providerAccountId: 'a', recipientScopedId: 'u1', text: 'hi' });
+    const r = await provider.sendText({
+      providerAccountId: 'a',
+      recipientScopedId: 'u1',
+      text: 'hi',
+    });
     expect(r.success).toBe(true);
     expect(r.providerMessageId).toMatch(/^mock-msg-/);
   });

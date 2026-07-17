@@ -43,7 +43,9 @@ export default async function AutomationsPage(): Promise<React.ReactElement> {
 
       <Card className="p-2">
         {automations.length === 0 ? (
-          <p className="p-6 text-center text-sm text-neutral-500">هنوز اتوماسیونی ساخته نشده است.</p>
+          <p className="p-6 text-center text-sm text-neutral-500">
+            هنوز اتوماسیونی ساخته نشده است.
+          </p>
         ) : (
           <Table>
             <THead>
@@ -61,7 +63,10 @@ export default async function AutomationsPage(): Promise<React.ReactElement> {
               {automations.map((a) => (
                 <TR key={a.id}>
                   <TD>
-                    <Link href={`/automations/${a.id}`} className="font-medium text-brand-dark hover:underline">
+                    <Link
+                      href={`/automations/${a.id}`}
+                      className="text-brand-dark font-medium hover:underline"
+                    >
                       {a.name}
                     </Link>
                   </TD>

@@ -56,7 +56,10 @@ function resultFromMarker(recipient: string): SendResult {
     case 'fail-rate-limit':
       return { success: false, error: { code: 4, message: 'Application request limit reached' } };
     case 'fail-token':
-      return { success: false, error: { code: 190, type: 'OAuthException', message: 'Token expired' } };
+      return {
+        success: false,
+        error: { code: 190, type: 'OAuthException', message: 'Token expired' },
+      };
     case 'fail-temporary':
       return { success: false, error: { httpStatus: 503, message: 'Temporarily unavailable' } };
     case 'fail-permanent':

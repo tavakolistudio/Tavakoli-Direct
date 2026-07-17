@@ -50,7 +50,10 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
               {clients.map((c) => (
                 <TR key={c.id}>
                   <TD>
-                    <Link href={`/clients/${c.id}`} className="font-medium text-brand-dark hover:underline">
+                    <Link
+                      href={`/clients/${c.id}`}
+                      className="text-brand-dark font-medium hover:underline"
+                    >
                       {c.name}
                     </Link>
                   </TD>

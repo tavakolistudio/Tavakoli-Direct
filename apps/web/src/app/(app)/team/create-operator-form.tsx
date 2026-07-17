@@ -38,7 +38,7 @@ export function CreateOperatorForm(): React.ReactElement {
           <option value="ADMIN">مدیر</option>
         </Select>
       </div>
-      <div className="sm:col-span-2 flex items-center gap-3">
+      <div className="flex items-center gap-3 sm:col-span-2">
         <Submit />
         {state.ok ? <span className="text-sm text-green-700">کاربر ایجاد شد.</span> : null}
         {state.error ? <span className="text-sm text-red-700">{state.error}</span> : null}

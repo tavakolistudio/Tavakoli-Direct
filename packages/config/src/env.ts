@@ -23,7 +23,10 @@ const baseSchema = z.object({
   APP_ENCRYPTION_KEY: z
     .string()
     .min(1, 'APP_ENCRYPTION_KEY is required')
-    .refine((v) => decodeKeyLength(v) === 32, 'APP_ENCRYPTION_KEY must decode to 32 bytes (base64)'),
+    .refine(
+      (v) => decodeKeyLength(v) === 32,
+      'APP_ENCRYPTION_KEY must decode to 32 bytes (base64)',
+    ),
 
   APP_URL: z.string().url().default('http://localhost:3000'),
   WORKER_URL: z.string().url().default('http://localhost:3001'),

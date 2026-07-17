@@ -40,22 +40,45 @@ export async function generateMockEventAction(
   });
   if (!account) return { ok: false, message: 'ابتدا یک پیج آزمایشی متصل کنید.' };
 
-  const base = { providerAccountId: account.providerAccountId, senderScopedId: `mock-user-${randomUUID().slice(0, 8)}` };
+  const base = {
+    providerAccountId: account.providerAccountId,
+    senderScopedId: `mock-user-${randomUUID().slice(0, 8)}`,
+  };
 
   const event = ((): NormalizedInstagramEvent => {
     switch (type) {
       case 'COMMENT':
-        return { kind: 'COMMENT', ...base, text, mediaId: 'mock-media-1', commentId: `c-${randomUUID().slice(0, 8)}` };
+        return {
+          kind: 'COMMENT',
+          ...base,
+          text,
+          mediaId: 'mock-media-1',
+          commentId: `c-${randomUUID().slice(0, 8)}`,
+        };
       case 'STORY_REPLY':
         return { kind: 'STORY_REPLY', ...base, text };
       case 'DELIVERY_SUCCESS':
-        return { kind: 'DELIVERY', ...base, providerMessageId: `mock-msg-${randomUUID().slice(0, 8)}` };
+        return {
+          kind: 'DELIVERY',
+          ...base,
+          providerMessageId: `mock-msg-${randomUUID().slice(0, 8)}`,
+        };
       case 'DELIVERY_FAILURE':
-        return { kind: 'DM', ...base, senderScopedId: `${base.senderScopedId}::fail-temporary`, text };
+        return {
+          kind: 'DM',
+          ...base,
+          senderScopedId: `${base.senderScopedId}::fail-temporary`,
+          text,
+        };
       case 'TOKEN_EXPIRED':
         return { kind: 'TOKEN_EXPIRED', ...base };
       case 'RATE_LIMIT':
-        return { kind: 'DM', ...base, senderScopedId: `${base.senderScopedId}::fail-rate-limit`, text };
+        return {
+          kind: 'DM',
+          ...base,
+          senderScopedId: `${base.senderScopedId}::fail-rate-limit`,
+          text,
+        };
       case 'DM':
       case 'RETRY':
       case 'DUPLICATE':
@@ -81,6 +104,9 @@ export async function generateMockEventAction(
       message: `رویداد ${type} پردازش شد — در صف: ${res.queued}، تکراری: ${res.duplicates}`,
     };
   } catch (err) {
-    return { ok: false, message: `خطا: ${(err as Error).message}. آیا Redis و worker در حال اجرا هستند؟` };
+    return {
+      ok: false,
+      message: `خطا: ${(err as Error).message}. آیا Redis و worker در حال اجرا هستند؟`,
+    };
   }
 }

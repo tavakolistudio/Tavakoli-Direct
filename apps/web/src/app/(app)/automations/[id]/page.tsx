@@ -20,7 +20,12 @@ export default async function AutomationDetailPage({
 
   const automation = await prisma.automation.findFirst({
     where: { id, deletedAt: null },
-    include: { trigger: true, steps: { orderBy: { order: 'asc' } }, client: true, instagramAccount: true },
+    include: {
+      trigger: true,
+      steps: { orderBy: { order: 'asc' } },
+      client: true,
+      instagramAccount: true,
+    },
   });
   if (!automation) notFound();
   await assertClientAccess(user, automation.clientId);
@@ -44,7 +49,8 @@ export default async function AutomationDetailPage({
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-neutral-700">
             <div>
-              وضعیت: <Badge tone={automation.status === 'ACTIVE' ? 'success' : 'neutral'}>
+              وضعیت:{' '}
+              <Badge tone={automation.status === 'ACTIVE' ? 'success' : 'neutral'}>
                 {AUTOMATION_STATUS_LABELS[automation.status]}
               </Badge>
             </div>

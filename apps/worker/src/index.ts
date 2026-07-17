@@ -38,7 +38,12 @@ workers.push(
 
 for (const w of workers) {
   w.on('failed', (job, err) => {
-    log.error('job failed', { queue: w.name, jobId: job?.id, attempts: job?.attemptsMade, error: err.message });
+    log.error('job failed', {
+      queue: w.name,
+      jobId: job?.id,
+      attempts: job?.attemptsMade,
+      error: err.message,
+    });
   });
   w.on('completed', (job) => {
     log.info('job completed', { queue: w.name, jobId: job.id });

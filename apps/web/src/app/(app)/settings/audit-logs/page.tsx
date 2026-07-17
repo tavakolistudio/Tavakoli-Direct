@@ -33,9 +33,15 @@ export default async function AuditLogsPage(): Promise<React.ReactElement> {
               <TR key={l.id}>
                 <TD>{formatDateTimeFa(l.createdAt)}</TD>
                 <TD>{l.actor?.name ?? 'سیستم'}</TD>
-                <TD dir="ltr" className="text-right">{l.action}</TD>
-                <TD dir="ltr" className="text-right">{l.entityType ?? '—'}</TD>
-                <TD dir="ltr" className="text-right">{l.ipAddress ?? '—'}</TD>
+                <TD dir="ltr" className="text-right">
+                  {l.action}
+                </TD>
+                <TD dir="ltr" className="text-right">
+                  {l.entityType ?? '—'}
+                </TD>
+                <TD dir="ltr" className="text-right">
+                  {l.ipAddress ?? '—'}
+                </TD>
               </TR>
             ))}
           </tbody>

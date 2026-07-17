@@ -26,7 +26,11 @@ export function DryRunTester({ accountId }: { accountId: string }): React.ReactE
         </div>
         <div>
           <Label htmlFor="dry-kind">نوع رویداد</Label>
-          <Select id="dry-kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+          <Select
+            id="dry-kind"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as typeof kind)}
+          >
             <option value="DM">دایرکت</option>
             <option value="COMMENT">کامنت</option>
             <option value="STORY_REPLY">پاسخ استوری</option>
@@ -41,7 +45,9 @@ export function DryRunTester({ accountId }: { accountId: string }): React.ReactE
         <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm">
           <div>
             <span className="text-neutral-500">ورودی نرمال‌شده: </span>
-            <span dir="rtl" className="font-medium">{result.normalizedInput || '—'}</span>
+            <span dir="rtl" className="font-medium">
+              {result.normalizedInput || '—'}
+            </span>
           </div>
           <div>
             <span className="text-neutral-500">اتوماسیون منتخب: </span>
@@ -54,9 +60,7 @@ export function DryRunTester({ accountId }: { accountId: string }): React.ReactE
               <span className="mr-2 text-neutral-500">(کلمه: {result.matchedKeyword})</span>
             ) : null}
           </div>
-          {result.blocked ? (
-            <p className="text-amber-700">مسدود: {result.blockedReason}</p>
-          ) : null}
+          {result.blocked ? <p className="text-amber-700">مسدود: {result.blockedReason}</p> : null}
           {result.plannedActions.length > 0 ? (
             <div>
               <span className="text-neutral-500">اقدام‌هایی که اجرا می‌شوند: </span>
@@ -67,7 +71,10 @@ export function DryRunTester({ accountId }: { accountId: string }): React.ReactE
             <div className="mb-1 text-neutral-500">دلیل تطابق هر اتوماسیون:</div>
             <ul className="space-y-1">
               {result.traces.map((t, i) => (
-                <li key={i} className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-1">
+                <li
+                  key={i}
+                  className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-1"
+                >
                   <span>{t.name}</span>
                   <span className="text-xs text-neutral-500">{t.reason}</span>
                 </li>

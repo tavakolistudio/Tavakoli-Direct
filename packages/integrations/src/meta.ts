@@ -41,7 +41,10 @@ async function graphPost(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...body, access_token: accessToken }),
     });
-    const json = (await res.json().catch(() => ({}))) as GraphError & { message_id?: string; id?: string };
+    const json = (await res.json().catch(() => ({}))) as GraphError & {
+      message_id?: string;
+      id?: string;
+    };
     if (!res.ok || json.error) {
       return {
         success: false,

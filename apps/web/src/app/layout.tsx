@@ -20,7 +20,11 @@ export const viewport: Viewport = {
   themeColor: '#ffffff',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }): React.ReactElement {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.ReactElement {
   return (
     <html lang="fa" dir="rtl" className={vazir.variable}>
       <body className="font-sans">{children}</body>

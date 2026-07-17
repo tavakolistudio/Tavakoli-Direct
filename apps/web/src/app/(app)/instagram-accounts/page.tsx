@@ -1,5 +1,16 @@
 import Link from 'next/link';
-import { Badge, Card, CardContent, CardHeader, CardTitle, Table, TD, TH, THead, TR } from '@tavakoli/ui';
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TD,
+  TH,
+  THead,
+  TR,
+} from '@tavakoli/ui';
 import { PageHeader } from '@/components/page-header';
 import { ACCOUNT_STATUS_LABELS, TOKEN_STATUS_LABELS } from '@/lib/labels';
 import { formatRelativeFa } from '@/lib/dates';
@@ -21,7 +32,10 @@ export default async function InstagramAccountsPage(): Promise<React.ReactElemen
       include: { client: true },
     }),
     user.role === 'ADMIN'
-      ? prisma.client.findMany({ where: { deletedAt: null, isActive: true }, select: { id: true, name: true } })
+      ? prisma.client.findMany({
+          where: { deletedAt: null, isActive: true },
+          select: { id: true, name: true },
+        })
       : Promise.resolve([]),
   ]);
 
@@ -63,13 +77,24 @@ export default async function InstagramAccountsPage(): Promise<React.ReactElemen
               {accounts.map((a) => (
                 <TR key={a.id}>
                   <TD>
-                    <Link href={`/instagram-accounts/${a.id}`} className="font-medium text-brand-dark hover:underline">
+                    <Link
+                      href={`/instagram-accounts/${a.id}`}
+                      className="text-brand-dark font-medium hover:underline"
+                    >
                       @{a.username}
                     </Link>
                   </TD>
                   <TD>{a.client.name}</TD>
                   <TD>
-                    <Badge tone={a.status === 'CONNECTED' ? 'success' : a.status === 'ERROR' ? 'danger' : 'warning'}>
+                    <Badge
+                      tone={
+                        a.status === 'CONNECTED'
+                          ? 'success'
+                          : a.status === 'ERROR'
+                            ? 'danger'
+                            : 'warning'
+                      }
+                    >
                       {ACCOUNT_STATUS_LABELS[a.status]}
                     </Badge>
                   </TD>

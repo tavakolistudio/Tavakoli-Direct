@@ -119,12 +119,22 @@ async function send(
 }
 
 async function onSuccess(
-  job: { id: string; conversationId: string | null; kind: string; payload: unknown; correlationId: string | null },
+  job: {
+    id: string;
+    conversationId: string | null;
+    kind: string;
+    payload: unknown;
+    correlationId: string | null;
+  },
   result: SendResult,
 ): Promise<void> {
   await prisma.outboundJob.update({
     where: { id: job.id },
-    data: { status: 'SUCCEEDED', providerMessageId: result.providerMessageId, processedAt: new Date() },
+    data: {
+      status: 'SUCCEEDED',
+      providerMessageId: result.providerMessageId,
+      processedAt: new Date(),
+    },
   });
 
   // Record the outbound message so it appears in the inbox (deduped by provider id).

@@ -135,14 +135,27 @@ export async function dryRunAction(input: {
 
   const account = await prisma.instagramAccount.findUnique({
     where: { id: input.accountId },
-    include: { client: true, capabilities: true, automations: { include: { trigger: true, steps: true } } },
+    include: {
+      client: true,
+      capabilities: true,
+      automations: { include: { trigger: true, steps: true } },
+    },
   });
   if (!account) {
-    return { normalizedInput: '', winnerName: null, blocked: false, traces: [], plannedActions: [], error: 'پیج یافت نشد.' };
+    return {
+      normalizedInput: '',
+      winnerName: null,
+      blocked: false,
+      traces: [],
+      plannedActions: [],
+      error: 'پیج یافت نشد.',
+    };
   }
   await assertClientAccess(user, account.clientId);
 
-  const storyReplyAvailable = account.capabilities.some((c) => c.key === 'STORY_REPLY' && c.available);
+  const storyReplyAvailable = account.capabilities.some(
+    (c) => c.key === 'STORY_REPLY' && c.available,
+  );
   const defs = account.automations.map((a) => toAutomationDef(a, { storyReplyAvailable }));
 
   const event: NormalizedInstagramEvent = {

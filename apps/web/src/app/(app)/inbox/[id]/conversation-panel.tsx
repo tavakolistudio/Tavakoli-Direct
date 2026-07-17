@@ -71,7 +71,12 @@ export function ConversationPanel({
           {automationPaused ? 'ازسرگیری اتوماسیون' : 'توقف اتوماسیون'}
         </Button>
         {status !== 'RESOLVED' ? (
-          <Button size="sm" onClick={() => changeStatus('RESOLVED')} disabled={pending} type="button">
+          <Button
+            size="sm"
+            onClick={() => changeStatus('RESOLVED')}
+            disabled={pending}
+            type="button"
+          >
             بستن گفتگو
           </Button>
         ) : null}

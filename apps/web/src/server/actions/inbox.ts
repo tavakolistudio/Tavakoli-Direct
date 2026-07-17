@@ -29,7 +29,12 @@ export async function addNoteAction(conversationId: string, body: string): Promi
     await prisma.internalNote.create({
       data: { conversationId, authorId: user.id, body: text },
     });
-    await audit({ actorId: user.id, action: 'NOTE_ADD', entityType: 'Conversation', entityId: conversationId });
+    await audit({
+      actorId: user.id,
+      action: 'NOTE_ADD',
+      entityType: 'Conversation',
+      entityId: conversationId,
+    });
     revalidatePath(`/inbox/${conversationId}`);
     return { ok: true };
   } catch (err) {

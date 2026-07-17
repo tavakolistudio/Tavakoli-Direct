@@ -33,7 +33,8 @@ export default async function MetaIntegrationPage(): Promise<React.ReactElement>
           {!isMeta ? (
             <p className="rounded bg-blue-50 px-3 py-2 text-blue-800">
               اتصال رسمی Meta غیرفعال است. برای فعال‌سازی، اعتبارنامه‌های Meta را در متغیرهای محیطی
-              تنظیم و <code dir="ltr">INSTAGRAM_PROVIDER=meta</code> کنید. راهنما در docs/META_SETUP.md.
+              تنظیم و <code dir="ltr">INSTAGRAM_PROVIDER=meta</code> کنید. راهنما در
+              docs/META_SETUP.md.
             </p>
           ) : null}
         </CardContent>
@@ -48,7 +49,9 @@ export default async function MetaIntegrationPage(): Promise<React.ReactElement>
             آدرس وبهوک: <code dir="ltr">{webhookUrl}</code>
           </div>
           <div>توکن تأیید (Verify Token): {maskPresence(env.META_VERIFY_TOKEN)}</div>
-          <div>وضعیت تأیید امضا: {isMeta ? 'با هر رویداد بررسی می‌شود' : 'در حالت آزمایشی غیرفعال'}</div>
+          <div>
+            وضعیت تأیید امضا: {isMeta ? 'با هر رویداد بررسی می‌شود' : 'در حالت آزمایشی غیرفعال'}
+          </div>
         </CardContent>
       </Card>
 

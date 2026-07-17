@@ -69,7 +69,10 @@ export interface EvaluationResult {
   blockedReason?: string;
 }
 
-function triggerMatchesEventKind(triggerType: TriggerType, kind: NormalizedInstagramEvent['kind']): boolean {
+function triggerMatchesEventKind(
+  triggerType: TriggerType,
+  kind: NormalizedInstagramEvent['kind'],
+): boolean {
   switch (triggerType) {
     case 'DM_KEYWORD':
     case 'OUTSIDE_BUSINESS_HOURS':
@@ -90,7 +93,11 @@ function evaluateTrigger(
   const t = def.trigger;
 
   if (!triggerMatchesEventKind(t.triggerType, event.kind)) {
-    return { matched: false, result: { matched: false, reason: 'event kind mismatch' }, specificity: 0 };
+    return {
+      matched: false,
+      result: { matched: false, reason: 'event kind mismatch' },
+      specificity: 0,
+    };
   }
 
   if (t.triggerType === 'STORY_REPLY_KEYWORD' && t.capabilityAvailable === false) {
@@ -105,17 +112,33 @@ function evaluateTrigger(
     case 'DM_KEYWORD':
     case 'STORY_REPLY_KEYWORD': {
       if (!t.keywordRule) {
-        return { matched: false, result: { matched: false, reason: 'no keyword rule' }, specificity: 0 };
+        return {
+          matched: false,
+          result: { matched: false, reason: 'no keyword rule' },
+          specificity: 0,
+        };
       }
       const r = matchKeyword(event.text ?? '', t.keywordRule);
-      return { matched: r.matched, result: r, specificity: MODE_SPECIFICITY[t.keywordRule.mode] ?? 1 };
+      return {
+        matched: r.matched,
+        result: r,
+        specificity: MODE_SPECIFICITY[t.keywordRule.mode] ?? 1,
+      };
     }
     case 'COMMENT_KEYWORD': {
       if (t.mediaId && t.mediaId !== event.mediaId) {
-        return { matched: false, result: { matched: false, reason: 'post id mismatch' }, specificity: 0 };
+        return {
+          matched: false,
+          result: { matched: false, reason: 'post id mismatch' },
+          specificity: 0,
+        };
       }
       if (!t.keywordRule) {
-        return { matched: false, result: { matched: false, reason: 'no keyword rule' }, specificity: 0 };
+        return {
+          matched: false,
+          result: { matched: false, reason: 'no keyword rule' },
+          specificity: 0,
+        };
       }
       const r = matchKeyword(event.text ?? '', t.keywordRule);
       // A post-specific rule is more specific than an any-post rule.
@@ -124,18 +147,29 @@ function evaluateTrigger(
     }
     case 'OUTSIDE_BUSINESS_HOURS': {
       if (!ctx.businessHours) {
-        return { matched: false, result: { matched: false, reason: 'no business hours configured' }, specificity: 0 };
+        return {
+          matched: false,
+          result: { matched: false, reason: 'no business hours configured' },
+          specificity: 0,
+        };
       }
       const outside = isOutsideBusinessHours(ctx.businessHours, ctx.now ?? new Date());
       return {
         matched: outside,
-        result: { matched: outside, reason: outside ? 'outside business hours' : 'within business hours' },
+        result: {
+          matched: outside,
+          reason: outside ? 'outside business hours' : 'within business hours',
+        },
         specificity: 0,
       };
     }
     case 'NO_RULE_MATCHED':
       // Handled separately as a fallback; never matches directly here.
-      return { matched: false, result: { matched: false, reason: 'fallback trigger' }, specificity: 0 };
+      return {
+        matched: false,
+        result: { matched: false, reason: 'fallback trigger' },
+        specificity: 0,
+      };
   }
 }
 
