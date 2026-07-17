@@ -17,7 +17,10 @@ const baseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url(),
+  // Defaulted so the web panel can boot before Redis is provisioned. The rate
+  // limiter fails open when Redis is unreachable; the worker/queue still need a
+  // real REDIS_URL to process webhooks and outbound messages.
+  REDIS_URL: z.string().url().default('redis://localhost:6379'),
 
   AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters'),
   APP_ENCRYPTION_KEY: z
