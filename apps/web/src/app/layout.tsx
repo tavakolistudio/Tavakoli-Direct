@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Vazirmatn } from 'next/font/google';
-import { APP_NAME, APP_TAGLINE_FA } from '@tavakoli/config';
+import { APP_NAME } from '@tavakoli/config';
 import './globals.css';
 
 const vazir = Vazirmatn({
@@ -13,13 +13,16 @@ const vazir = Vazirmatn({
 // production build never requires secrets to collect metadata.
 const siteUrl = process.env.APP_URL ?? 'https://tavakoli-direct.vercel.app';
 
+const seoDescription =
+  'دایرکت هوشمند توکلی استودیو: پاسخ خودکار به دایرکت و کامنت اینستاگرام، ساخت سناریوهای گفتگو، جمع‌آوری سرنخ و صندوق پیام مشترک تیمی بر پایهٔ ابزارهای رسمی متا. ویژهٔ باشگاه مشتریان توکلی استودیو.';
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${APP_NAME} — دایرکت هوشمند اینستاگرام`,
+    default: `${APP_NAME} — دایرکت هوشمند اینستاگرام | توکلی استودیو`,
     template: `%s | ${APP_NAME}`,
   },
-  description: APP_TAGLINE_FA,
+  description: seoDescription,
   applicationName: APP_NAME,
   keywords: [
     'دایرکت هوشمند',
@@ -41,13 +44,13 @@ export const metadata: Metadata = {
     locale: 'fa_IR',
     url: siteUrl,
     siteName: APP_NAME,
-    title: `${APP_NAME} — دایرکت هوشمند اینستاگرام`,
-    description: APP_TAGLINE_FA,
+    title: `${APP_NAME} — دایرکت هوشمند اینستاگرام | توکلی استودیو`,
+    description: seoDescription,
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${APP_NAME} — دایرکت هوشمند اینستاگرام`,
-    description: APP_TAGLINE_FA,
+    title: `${APP_NAME} — دایرکت هوشمند اینستاگرام | توکلی استودیو`,
+    description: seoDescription,
   },
   robots: {
     index: true,
