@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-canvas text-neutral-900 antialiased;
+  font-feature-settings: 'ss01';
+}
+
+/* Persian numerals feel more native in the UI where appropriate. */
+.tabular-fa {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus visibility for accessibility. */
+:focus-visible {
+  outline: 2px solid theme('colors.brand.DEFAULT');
+  outline-offset: 2px;
+}
+
+/* Scrollbars in RTL feel better slim. */
+* {
+  scrollbar-width: thin;
+}
