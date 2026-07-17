@@ -19,6 +19,15 @@ const nextConfig = {
   // Trace files from the monorepo root so the pnpm-hoisted Prisma query engine
   // (.prisma/client/*.so.node) is copied into the serverless function bundle.
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  // Force-include the Prisma query engine binaries in every serverless function;
+  // Next's automatic tracing misses them in a pnpm monorepo.
+  outputFileTracingIncludes: {
+    '/**': [
+      '../../node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/*.node',
+      '../../node_modules/.pnpm/@prisma+client*/node_modules/@prisma/client/**',
+      '../../node_modules/.pnpm/prisma@*/node_modules/prisma/**',
+    ],
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
