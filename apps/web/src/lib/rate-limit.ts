@@ -7,6 +7,17 @@ export interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
+/** Reject if the Redis operation does not settle quickly (unreachable Redis). */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  // Handle a late rejection so it never becomes an unhandled rejection once the
+  // timeout has already won the race.
+  p.catch(() => undefined);
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('redis timeout')), ms)),
+  ]);
+}
+
 /**
  * Fixed-window rate limiter backed by Redis. Returns whether the action is
  * allowed and how many attempts remain in the current window.
@@ -24,11 +35,11 @@ export async function rateLimit(
   try {
     const redis = getRedis();
     const redisKey = `rl:${key}`;
-    const count = await redis.incr(redisKey);
+    const count = await withTimeout(redis.incr(redisKey), 1500);
     if (count === 1) {
-      await redis.expire(redisKey, windowSeconds);
+      await withTimeout(redis.expire(redisKey, windowSeconds), 1500);
     }
-    const ttl = await redis.ttl(redisKey);
+    const ttl = await withTimeout(redis.ttl(redisKey), 1500);
     const allowed = count <= maxAttempts;
     return {
       allowed,
@@ -44,7 +55,7 @@ export async function rateLimit(
 /** Clear a rate-limit counter (e.g. after a successful login). Best-effort. */
 export async function clearRateLimit(key: string): Promise<void> {
   try {
-    await getRedis().del(`rl:${key}`);
+    await withTimeout(getRedis().del(`rl:${key}`), 1500);
   } catch {
     // Redis unavailable — nothing to clear.
   }
