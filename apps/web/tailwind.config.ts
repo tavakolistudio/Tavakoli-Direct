@@ -5,11 +5,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Restrained deep-red accent per the brand guidelines.
+        // Restrained green accent.
         brand: {
-          DEFAULT: '#b91c1c',
-          dark: '#991b1b',
-          light: '#ef4444',
+          DEFAULT: '#059669',
+          dark: '#047857',
+          light: '#34d399',
         },
         // Off-white surfaces.
         canvas: '#faf9f7',

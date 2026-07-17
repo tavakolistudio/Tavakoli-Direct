@@ -179,9 +179,23 @@ const jsonLd = {
       '@type': 'Organization',
       name: 'Tavakoli Studio',
       alternateName: 'توکلی استودیو',
-      url: 'https://tavakoli-direct.vercel.app',
+      url: 'https://tavakolistudio.vercel.app/en',
       description:
         'توکلی استودیو ارائه‌دهندهٔ خدمات هوشمند دایرکت اینستاگرام ویژهٔ باشگاه مشتریان خود است.',
+      email: 'tavakolipix@gmail.com',
+      telephone: '+905016967777',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Istanbul',
+        addressCountry: 'TR',
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        telephone: '+905016967777',
+        email: 'tavakolipix@gmail.com',
+        contactType: 'customer support',
+        areaServed: 'TR',
+      },
     },
     {
       '@type': 'WebSite',
@@ -539,30 +553,81 @@ export default function LandingPage(): React.ReactElement {
 
       {/* Footer */}
       <footer className="border-t border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-neutral-500 md:flex-row md:px-8">
-          <div className="flex items-center gap-2">
-            <div className="bg-brand flex h-7 w-7 items-center justify-center rounded-md text-xs font-bold text-white">
-              TD
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 text-sm md:grid-cols-3 md:px-8">
+          {/* Brand */}
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="bg-brand flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-white">
+                TD
+              </div>
+              <span className="font-bold text-neutral-900">دایرکت هوشمند توکلی استودیو</span>
             </div>
-            <span>دایرکت هوشمند توکلی — Tavakoli Studio</span>
+            <p className="mt-3 leading-7 text-neutral-500">
+              خدمات هوشمند دایرکت اینستاگرام، ویژهٔ باشگاه مشتریان توکلی استودیو.
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="#services" className="hover:text-neutral-800">
-              خدمات
-            </a>
-            <a href="#usecases" className="hover:text-neutral-800">
-              کاربردها
-            </a>
-            <a href="#faq" className="hover:text-neutral-800">
-              سوالات
-            </a>
-            <Link href="/login" className="hover:text-neutral-800">
-              ورود اعضا
-            </Link>
+
+          {/* Links */}
+          <div>
+            <div className="mb-3 font-semibold text-neutral-900">دسترسی سریع</div>
+            <ul className="space-y-2 text-neutral-500">
+              <li>
+                <a href="#services" className="hover:text-neutral-800">
+                  خدمات
+                </a>
+              </li>
+              <li>
+                <a href="#usecases" className="hover:text-neutral-800">
+                  کاربردها
+                </a>
+              </li>
+              <li>
+                <a href="#faq" className="hover:text-neutral-800">
+                  سوالات متداول
+                </a>
+              </li>
+              <li>
+                <Link href="/login" className="hover:text-neutral-800">
+                  ورود اعضا
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <div className="mb-3 font-semibold text-neutral-900">تماس با توکلی استودیو</div>
+            <ul className="space-y-2 text-neutral-500">
+              <li>آدرس: استانبول، ترکیه</li>
+              <li>
+                تلفن:{' '}
+                <a href="tel:+905016967777" dir="ltr" className="hover:text-brand-dark">
+                  +90 501 696 7777
+                </a>
+              </li>
+              <li>
+                ایمیل:{' '}
+                <a href="mailto:tavakolipix@gmail.com" dir="ltr" className="hover:text-brand-dark">
+                  tavakolipix@gmail.com
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
+
         <div className="border-t border-neutral-100 py-4 text-center text-xs text-neutral-400">
           این خدمات مربوط به باشگاه مشتریان توکلی استودیو می‌باشد.
+        </div>
+        <div className="border-t border-neutral-100 py-4 text-center text-xs text-neutral-500">
+          POWERED BY:{' '}
+          <a
+            href="https://tavakolistudio.vercel.app/en"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-dark font-semibold hover:underline"
+          >
+            TAVAKOLISTUDIO
+          </a>
         </div>
       </footer>
     </div>
