@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tavakoli
+          POSTGRES_PASSWORD: tavakoli
+          POSTGRES_DB: tavakoli_direct
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U tavakoli -d tavakoli_direct"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping" --health-interval=5s
+          --health-timeout=5s --health-retries=10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://tavakoli:tavakoli@localhost:5432/tavakoli_direct?schema=public
+      REDIS_URL: redis://localhost:6379
+      AUTH_SECRET: ci-auth-secret-ci-auth-secret-ci-auth-secret
+      # 32 zero bytes, base64 — CI only, never a real key.
+      APP_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      INSTAGRAM_PROVIDER: mock
+      APP_URL: http://localhost:3000
+      WORKER_URL: http://localhost:3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Prisma migrate (test DB)
+        run: pnpm --filter @tavakoli/database migrate:deploy
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit & integration tests
+        run: pnpm test
+
+      - name: Production build
+        run: pnpm build

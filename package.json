@@ -1,0 +1,35 @@
+{
+  "name": "tavakoli-direct",
+  "version": "0.1.0",
+  "private": true,
+  "description": "خدمات هوشمند دایرکت ویژه مشتریان Tavakoli Studio — internal Instagram DM automation platform",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter @tavakoli/web test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "db:generate": "pnpm --filter @tavakoli/database generate",
+    "db:migrate": "pnpm --filter @tavakoli/database migrate",
+    "db:push": "pnpm --filter @tavakoli/database push",
+    "db:seed": "pnpm --filter @tavakoli/database seed",
+    "db:studio": "pnpm --filter @tavakoli/database studio",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "eslint": "8.57.0",
+    "prettier": "3.3.3",
+    "prettier-plugin-tailwindcss": "0.6.5",
+    "turbo": "2.0.9",
+    "typescript": "5.5.3"
+  }
+}
