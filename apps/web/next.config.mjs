@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PrismaPlugin } from '@prisma/nextjs-monorepo-workaround-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,17 +17,15 @@ const nextConfig = {
   ],
   // Keep native/node-only deps external to the server bundle (Next 15 key name).
   serverExternalPackages: ['@prisma/client', '.prisma/client', '@node-rs/argon2', 'bullmq', 'ioredis'],
-  // Trace files from the monorepo root so the pnpm-hoisted Prisma query engine
-  // (.prisma/client/*.so.node) is copied into the serverless function bundle.
+  // Trace files from the monorepo root so pnpm-hoisted native deps resolve.
   outputFileTracingRoot: path.join(__dirname, '../../'),
-  // Force-include the Prisma query engine binaries in every serverless function;
-  // Next's automatic tracing misses them in a pnpm monorepo.
-  outputFileTracingIncludes: {
-    '/**': [
-      '../../node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/*.node',
-      '../../node_modules/.pnpm/@prisma+client*/node_modules/@prisma/client/**',
-      '../../node_modules/.pnpm/prisma@*/node_modules/prisma/**',
-    ],
+  // Copy the Prisma query engine (.so.node) into the server bundle. The official
+  // monorepo plugin is the reliable fix for the "engine-not-found" error on Vercel.
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.plugins = [...config.plugins, new PrismaPlugin()];
+    }
+    return config;
   },
   eslint: {
     ignoreDuringBuilds: true,
