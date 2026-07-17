@@ -9,10 +9,8 @@ const nextConfig = {
     '@tavakoli/integrations',
     '@tavakoli/ui',
   ],
-  experimental: {
-    // Keep native/node-only deps external to the server bundle.
-    serverComponentsExternalPackages: ['@prisma/client', '@node-rs/argon2', 'bullmq', 'ioredis'],
-  },
+  // Keep native/node-only deps external to the server bundle (Next 15 key name).
+  serverExternalPackages: ['@prisma/client', '@node-rs/argon2', 'bullmq', 'ioredis'],
   eslint: {
     ignoreDuringBuilds: true,
   },

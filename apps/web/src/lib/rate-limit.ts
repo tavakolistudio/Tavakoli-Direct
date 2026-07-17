@@ -1,5 +1,5 @@
 import 'server-only';
-import { redis } from './redis';
+import { getRedis } from './redis';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -16,6 +16,7 @@ export async function rateLimit(
   maxAttempts: number,
   windowSeconds: number,
 ): Promise<RateLimitResult> {
+  const redis = getRedis();
   const redisKey = `rl:${key}`;
   const count = await redis.incr(redisKey);
   if (count === 1) {
@@ -32,5 +33,5 @@ export async function rateLimit(
 
 /** Clear a rate-limit counter (e.g. after a successful login). */
 export async function clearRateLimit(key: string): Promise<void> {
-  await redis.del(`rl:${key}`);
+  await getRedis().del(`rl:${key}`);
 }

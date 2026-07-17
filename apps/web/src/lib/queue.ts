@@ -1,7 +1,7 @@
 import 'server-only';
 import { Queue } from 'bullmq';
 import { OUTBOUND_JOB_POLICY, QUEUE_NAMES } from '@tavakoli/config';
-import { redis } from './redis';
+import { getRedis } from './redis';
 
 /**
  * BullMQ producers. The web app only enqueues; the worker consumes. Queues are
@@ -14,7 +14,7 @@ globalForQueues.tdQueues = queues;
 function getQueue(name: string): Queue {
   let q = queues.get(name);
   if (!q) {
-    q = new Queue(name, { connection: redis });
+    q = new Queue(name, { connection: getRedis() });
     queues.set(name, q);
   }
   return q;
