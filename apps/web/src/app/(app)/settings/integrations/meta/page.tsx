@@ -60,8 +60,8 @@ export default async function MetaIntegrationPage(): Promise<React.ReactElement>
           <CardTitle>اعتبارنامه‌ها (بدون نمایش مقدار)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-neutral-700">
-          <div>App ID: {maskPresence(env.META_APP_ID)}</div>
-          <div>App Secret: {maskPresence(env.META_APP_SECRET)}</div>
+          <div>App ID: {maskPresence(env.INSTAGRAM_APP_ID ?? env.META_APP_ID)}</div>
+          <div>App Secret: {maskPresence(env.INSTAGRAM_APP_SECRET ?? env.META_APP_SECRET)}</div>
           <div>Redirect URI: {maskPresence(env.META_REDIRECT_URI)}</div>
           <p className="pt-2 text-xs text-neutral-400">
             مقادیر محرمانه هرگز به‌صورت کامل نمایش داده نمی‌شوند.

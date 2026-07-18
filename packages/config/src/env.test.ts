@@ -18,7 +18,18 @@ describe('loadEnv', () => {
   it('requires Meta credentials when provider is meta', () => {
     expect(() =>
       loadEnv({ ...base, INSTAGRAM_PROVIDER: 'meta' } as NodeJS.ProcessEnv),
-    ).toThrowError(/META_APP_ID is required/);
+    ).toThrowError(/INSTAGRAM_APP_ID/);
+  });
+
+  it('accepts INSTAGRAM_APP_* credentials alone in meta mode', () => {
+    const env = loadEnv({
+      ...base,
+      INSTAGRAM_PROVIDER: 'meta',
+      INSTAGRAM_APP_ID: '123',
+      INSTAGRAM_APP_SECRET: 'secret',
+      META_VERIFY_TOKEN: 'verify',
+    } as NodeJS.ProcessEnv);
+    expect(env.INSTAGRAM_PROVIDER).toBe('meta');
   });
 
   it('rejects an encryption key that is not 32 bytes', () => {

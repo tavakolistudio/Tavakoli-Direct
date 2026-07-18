@@ -85,7 +85,9 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
   }
 
   async verifyWebhook(input: WebhookVerifyInput): Promise<boolean> {
-    const secret = env.META_APP_SECRET;
+    // Instagram-Login apps sign webhooks with the Instagram app secret; older
+    // Facebook-Login apps use the Meta app secret.
+    const secret = env.INSTAGRAM_APP_SECRET ?? env.META_APP_SECRET;
     if (!secret) return false;
     return verifySignature(input.rawBody, input.signature, secret);
   }

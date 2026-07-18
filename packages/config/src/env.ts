@@ -62,14 +62,29 @@ const baseSchema = z.object({
 /** When provider=meta, these become mandatory. */
 const metaRequiredSchema = baseSchema.superRefine((val, ctx) => {
   if (val.INSTAGRAM_PROVIDER === 'meta') {
-    for (const key of ['META_APP_ID', 'META_APP_SECRET', 'META_VERIFY_TOKEN'] as const) {
-      if (!val[key]) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [key],
-          message: `${key} is required when INSTAGRAM_PROVIDER=meta`,
-        });
-      }
+    // The Instagram-Login flow uses INSTAGRAM_APP_*; the older Facebook-Login
+    // flow uses META_APP_*. Either pair satisfies the requirement.
+    if (!val.INSTAGRAM_APP_ID && !val.META_APP_ID) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['INSTAGRAM_APP_ID'],
+        message: 'INSTAGRAM_APP_ID (or META_APP_ID) is required when INSTAGRAM_PROVIDER=meta',
+      });
+    }
+    if (!val.INSTAGRAM_APP_SECRET && !val.META_APP_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['INSTAGRAM_APP_SECRET'],
+        message:
+          'INSTAGRAM_APP_SECRET (or META_APP_SECRET) is required when INSTAGRAM_PROVIDER=meta',
+      });
+    }
+    if (!val.META_VERIFY_TOKEN) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['META_VERIFY_TOKEN'],
+        message: 'META_VERIFY_TOKEN is required when INSTAGRAM_PROVIDER=meta',
+      });
     }
   }
   if (val.STORAGE_PROVIDER === 's3' && !val.STORAGE_BUCKET) {
