@@ -184,7 +184,12 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
       `${input.providerAccountId}/messages`,
       {
         recipient: { id: input.recipientScopedId },
-        message: { attachment: { type: 'image', payload: { url: input.mediaUrl } } },
+        message: {
+          attachment: {
+            type: input.mediaType ?? 'image',
+            payload: { url: input.mediaUrl },
+          },
+        },
       },
       requireToken(input.accessToken),
     );

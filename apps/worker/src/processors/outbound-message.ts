@@ -97,6 +97,7 @@ async function send(
         recipientScopedId: payload.recipientScopedId!,
         mediaUrl: payload.mediaUrl!,
         caption: payload.caption,
+        mediaType: payload.mediaType as 'image' | 'audio' | 'video' | undefined,
         accessToken,
       });
     case 'privateReply':

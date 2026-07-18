@@ -21,6 +21,7 @@ export interface StepDraft {
 const STEP_LABELS: Record<string, string> = {
   SEND_TEXT: 'ارسال متن',
   SEND_IMAGE: 'ارسال عکس',
+  SEND_AUDIO: 'ارسال صدا',
   WAIT: 'مکث',
   NEEDS_HUMAN: 'ارجاع به اپراتور',
 };
@@ -28,6 +29,7 @@ const STEP_LABELS: Record<string, string> = {
 const STEP_HINTS: Record<string, string> = {
   SEND_TEXT: 'برای کامنت، این پیام به‌صورت دایرکت برای کامنت‌گذار می‌رود.',
   SEND_IMAGE: 'عکس باید روی یک آدرس اینترنتی عمومی باشد تا اینستاگرام بتواند بخواندش.',
+  SEND_AUDIO: 'فایل m4a یا mp3، حداکثر ۸ مگابایت. پس از آپلود برای مخاطب ارسال می‌شود.',
   WAIT: 'کمی صبر می‌کند تا پیام‌ها پشت سر هم و طبیعی‌تر برسند.',
   NEEDS_HUMAN: 'گفتگو به کارتابل اپراتور می‌رود تا انسان جواب دهد.',
 };
@@ -40,6 +42,28 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
   const [steps, setSteps] = useState<StepDraft[]>(
     initial.length > 0 ? initial : [{ actionType: 'SEND_TEXT', text: '' }],
   );
+  const [uploading, setUploading] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function uploadAudioFile(index: number, file: File): Promise<void> {
+    setUploadError(null);
+    setUploading(index);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch('/api/uploads/audio', { method: 'POST', body });
+      const json = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !json.url) {
+        setUploadError(json.error ?? 'آپلود ناموفق بود.');
+        return;
+      }
+      update(index, { mediaUrl: json.url });
+    } catch {
+      setUploadError('آپلود ناموفق بود.');
+    } finally {
+      setUploading(null);
+    }
+  }
 
   function update(index: number, patch: Partial<StepDraft>): void {
     setSteps((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -117,6 +141,33 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
                 value={step.caption ?? ''}
                 onChange={(e) => update(i, { caption: e.target.value })}
               />
+            </div>
+          ) : null}
+
+          {step.actionType === 'SEND_AUDIO' ? (
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="audio/mp4,audio/m4a,audio/x-m4a,audio/mpeg,.m4a,.mp3"
+                className="block w-full text-sm"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void uploadAudioFile(i, file);
+                }}
+              />
+              {uploading === i ? (
+                <p className="text-xs text-neutral-500">در حال آپلود…</p>
+              ) : step.mediaUrl ? (
+                <p className="text-xs text-green-700">
+                  فایل آپلود شد ✅{' '}
+                  <a href={step.mediaUrl} target="_blank" rel="noreferrer" className="underline">
+                    گوش دادن
+                  </a>
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-500">هنوز فایلی انتخاب نشده.</p>
+              )}
+              {uploadError ? <p className="text-xs text-red-700">{uploadError}</p> : null}
             </div>
           ) : null}
 
