@@ -7,6 +7,7 @@ import {
   exchangeCodeForToken,
   exchangeForLongLivedToken,
   fetchInstagramProfile,
+  subscribeAccountToWebhooks,
   INSTAGRAM_SCOPES,
 } from '@/server/instagram-oauth';
 
@@ -103,6 +104,16 @@ export async function GET(request: Request): Promise<Response> {
         tokenAuthTag: encrypted.authTag,
         scopes: [...INSTAGRAM_SCOPES],
         expiresAt,
+      },
+    });
+
+    // Without this the account connects but Instagram never delivers webhooks.
+    const subscription = await subscribeAccountToWebhooks(longLived.accessToken);
+    await prisma.instagramAccount.update({
+      where: { id: account.id },
+      data: {
+        webhookStatus: subscription.ok ? 'VERIFIED' : 'FAILED',
+        connectionError: subscription.ok ? null : subscription.error,
       },
     });
 

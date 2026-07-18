@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { prisma } from '@tavakoli/database';
+import { decryptSecret, prisma } from '@tavakoli/database';
 import { audit } from '@/lib/audit';
 import { requireAdmin } from '@/lib/guards';
+import { subscribeAccountToWebhooks } from '@/server/instagram-oauth';
 
 const connectSchema = z.object({
   clientId: z.string().min(1),
@@ -125,4 +126,50 @@ export async function deleteInstagramAccountAction(
 
   revalidatePath('/instagram-accounts');
   return { ok: true };
+}
+
+/**
+ * Re-runs the webhook subscription for an already-connected account.
+ *
+ * Accounts connected before the subscription step existed have a valid token
+ * but were never registered with Instagram, so no events are delivered. This
+ * repairs them without forcing a reconnect.
+ */
+export async function resubscribeWebhooksAction(
+  accountId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireAdmin();
+
+  const account = await prisma.instagramAccount.findFirst({
+    where: { id: accountId, deletedAt: null },
+    include: { credential: true },
+  });
+  if (!account?.credential) return { ok: false, error: 'توکن این پیج موجود نیست.' };
+
+  const token = decryptSecret({
+    ciphertext: account.credential.encryptedToken,
+    iv: account.credential.tokenIv,
+    authTag: account.credential.tokenAuthTag,
+  });
+
+  const result = await subscribeAccountToWebhooks(token);
+
+  await prisma.instagramAccount.update({
+    where: { id: accountId },
+    data: {
+      webhookStatus: result.ok ? 'VERIFIED' : 'FAILED',
+      connectionError: result.ok ? null : result.error,
+    },
+  });
+
+  await audit({
+    actorId: admin.id,
+    action: 'INSTAGRAM_WEBHOOK_SUBSCRIBE',
+    entityType: 'InstagramAccount',
+    entityId: accountId,
+    metadata: { ok: result.ok },
+  });
+
+  revalidatePath('/instagram-accounts');
+  return result;
 }
