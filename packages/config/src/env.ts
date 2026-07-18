@@ -47,6 +47,9 @@ const baseSchema = z.object({
   INSTAGRAM_APP_ID: z.string().optional(),
   INSTAGRAM_APP_SECRET: z.string().optional(),
 
+  /** Supabase Storage, used to host media that Meta fetches by URL. */
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_ACCESS_KEY: z.string().optional(),

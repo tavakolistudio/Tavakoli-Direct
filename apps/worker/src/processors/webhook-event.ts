@@ -302,7 +302,7 @@ async function createOutbound(input: CreateOutboundInput): Promise<void> {
 }
 
 interface ApplyStepInput {
-  step: { actionType: string; config: unknown };
+  step: { actionType: string; config: unknown; order: number };
   account: { id: string };
   conversation: { id: string };
   contact: { id: string };
@@ -313,7 +313,9 @@ interface ApplyStepInput {
 
 async function applyStep(input: ApplyStepInput): Promise<void> {
   const cfg = (input.step.config ?? {}) as Record<string, unknown>;
-  const idx = 0;
+  // Must be the real step position: the outbound idempotency key includes it, so
+  // a fixed value would make two same-kind steps collide and silently drop one.
+  const idx = input.step.order;
   switch (input.step.actionType) {
     case 'SEND_TEXT':
       await createOutbound({
@@ -334,6 +336,8 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
       });
       break;
     case 'SEND_IMAGE':
+    case 'SEND_AUDIO':
+    case 'SEND_VIDEO':
       await createOutbound({
         accountId: input.account.id,
         conversationId: input.conversation.id,
@@ -345,6 +349,12 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
           recipientScopedId: input.event.senderScopedId,
           mediaUrl: cfg.mediaUrl,
           caption: cfg.caption,
+          mediaType:
+            input.step.actionType === 'SEND_AUDIO'
+              ? 'audio'
+              : input.step.actionType === 'SEND_VIDEO'
+                ? 'video'
+                : 'image',
         },
       });
       break;

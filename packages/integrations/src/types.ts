@@ -37,6 +37,8 @@ export interface SendTextInput {
 export interface SendMediaInput extends Omit<SendTextInput, 'text'> {
   mediaUrl: string;
   caption?: string;
+  /** Attachment kind Meta expects. Defaults to image for older callers. */
+  mediaType?: 'image' | 'audio' | 'video';
 }
 
 export interface PrivateReplyInput {
