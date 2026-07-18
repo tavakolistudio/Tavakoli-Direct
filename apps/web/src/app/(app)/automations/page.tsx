@@ -7,6 +7,7 @@ import { toPersianDigits } from '@/lib/dates';
 import { requireUser } from '@/lib/guards';
 import { clientScope } from '@/server/queries';
 import { prisma } from '@tavakoli/database';
+import { DeleteAutomationButton } from './delete-automation-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,7 @@ export default async function AutomationsPage(): Promise<React.ReactElement> {
                 <TH>وضعیت</TH>
                 <TH>اجراها</TH>
                 <TH>آخرین اجرا</TH>
+                {user.role === 'ADMIN' ? <TH>عملیات</TH> : null}
               </TR>
             </THead>
             <tbody>
@@ -78,6 +80,11 @@ export default async function AutomationsPage(): Promise<React.ReactElement> {
                   </TD>
                   <TD>{toPersianDigits(a.executionCount)}</TD>
                   <TD>{formatRelativeFa(a.lastExecutedAt)}</TD>
+                  {user.role === 'ADMIN' ? (
+                    <TD>
+                      <DeleteAutomationButton automationId={a.id} name={a.name} />
+                    </TD>
+                  ) : null}
                 </TR>
               ))}
             </tbody>

@@ -3,10 +3,16 @@
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button, Input, Label, Select, Textarea } from '@tavakoli/ui';
-import { MATCH_MODE_LABELS, TRIGGER_LABELS } from '@/lib/labels';
+import { MATCH_MODE_LABELS, TRIGGER_HINTS, TRIGGER_LABELS } from '@/lib/labels';
 import { createAutomationAction, type AutomationFormState } from '@/server/actions/automations';
 
 const KEYWORD_TRIGGERS = ['DM_KEYWORD', 'COMMENT_KEYWORD', 'STORY_REPLY_KEYWORD'];
+
+const PUBLIC_REPLY_PLACEHOLDER = [
+  'براتون دایرکت شد ✅',
+  'پیام دادیم بهتون 📩',
+  'تو دایرکت جواب دادیم',
+].join('\n');
 
 function Submit(): React.ReactElement {
   const { pending } = useFormStatus();
@@ -74,6 +80,9 @@ export function AutomationWizard({
             </option>
           ))}
         </Select>
+        {TRIGGER_HINTS[triggerType] ? (
+          <p className="text-xs text-neutral-500">{TRIGGER_HINTS[triggerType]}</p>
+        ) : null}
         {triggerType === 'STORY_REPLY_KEYWORD' ? (
           <p className="rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
             این قابلیت با تنظیمات فعلی Meta ممکن است در دسترس نباشد و پشت پرچم قابلیت قرار دارد.
@@ -96,8 +105,27 @@ export function AutomationWizard({
         </Step>
       ) : null}
 
-      <Step n={4} title="تنظیم پاسخ">
-        <Label htmlFor="responseText">متن پاسخ</Label>
+      {triggerType === 'COMMENT_KEYWORD' ? (
+        <Step n={4} title="پاسخ زیر کامنت (اختیاری)">
+          <Label htmlFor="publicReplies">پاسخ‌های عمومی</Label>
+          <Textarea
+            id="publicReplies"
+            name="publicReplies"
+            rows={4}
+            placeholder={PUBLIC_REPLY_PLACEHOLDER}
+          />
+          <p className="text-xs text-neutral-500">
+            هر خط یک پاسخ. برای هر کامنت یکی به‌صورت تصادفی انتخاب می‌شود. خالی بگذارید تا زیر کامنت
+            چیزی نوشته نشود.
+          </p>
+          <Label htmlFor="mediaId">شناسه پست (اختیاری)</Label>
+          <Input id="mediaId" name="mediaId" dir="ltr" />
+          <p className="text-xs text-neutral-500">خالی = روی کامنت همهٔ پست‌ها کار می‌کند.</p>
+        </Step>
+      ) : null}
+
+      <Step n={5} title="تنظیم پاسخ">
+        <Label htmlFor="responseText">متن پاسخ (در دایرکت)</Label>
         <Textarea
           id="responseText"
           name="responseText"
@@ -108,6 +136,9 @@ export function AutomationWizard({
           <div>
             <Label htmlFor="priority">اولویت</Label>
             <Input id="priority" name="priority" type="number" defaultValue={0} min={0} dir="ltr" />
+            <p className="mt-1 text-xs text-neutral-500">
+              فقط وقتی مهم است که چند اتوماسیون هم‌زمان بخوانند؛ عدد بزرگ‌تر برنده است.
+            </p>
           </div>
           <div>
             <Label htmlFor="cooldownSeconds">فاصله زمانی (ثانیه)</Label>
@@ -115,10 +146,13 @@ export function AutomationWizard({
               id="cooldownSeconds"
               name="cooldownSeconds"
               type="number"
-              defaultValue={0}
+              defaultValue={86400}
               min={0}
               dir="ltr"
             />
+            <p className="mt-1 text-xs text-neutral-500">
+              هر شخص در این بازه فقط یک بار پاسخ می‌گیرد. ۸۶۴۰۰ یعنی ۲۴ ساعت.
+            </p>
           </div>
         </div>
       </Step>

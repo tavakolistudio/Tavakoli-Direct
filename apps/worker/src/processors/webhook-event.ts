@@ -178,8 +178,10 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     data: { executionCount: { increment: 1 }, lastExecutedAt: new Date() },
   });
 
-  // Optional public comment reply.
-  if (event.kind === 'COMMENT' && winnerRow.trigger?.publicReply && event.commentId) {
+  // Optional public comment reply. When several variants are configured one is
+  // picked at random, so a page answering many comments does not look robotic.
+  const publicReplyText = pickPublicReply(winnerRow.trigger);
+  if (event.kind === 'COMMENT' && publicReplyText && event.commentId) {
     await createOutbound({
       accountId: account.id,
       conversationId: conversation.id,
@@ -187,7 +189,7 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
       kind: 'publicCommentReply',
       executionId: execution.id,
       stepIndex: -1,
-      payload: { commentId: event.commentId, text: winnerRow.trigger.publicReply },
+      payload: { commentId: event.commentId, text: publicReplyText },
     });
   }
 
@@ -390,4 +392,18 @@ async function markProcessed(webhookEventId: string, note: string): Promise<void
     where: { id: webhookEventId },
     data: { status: 'PROCESSED', processedAt: new Date(), errorDetail: note.slice(0, 500) },
   });
+}
+
+/**
+ * Chooses the public comment reply to send: a random variant when several are
+ * configured, otherwise the legacy single field. Returns null when neither is set.
+ */
+function pickPublicReply(
+  trigger: { publicReplies?: string[] | null; publicReply?: string | null } | null | undefined,
+): string | null {
+  const variants = (trigger?.publicReplies ?? []).map((v) => v.trim()).filter(Boolean);
+  if (variants.length > 0) {
+    return variants[Math.floor(Math.random() * variants.length)] ?? null;
+  }
+  return trigger?.publicReply?.trim() || null;
 }

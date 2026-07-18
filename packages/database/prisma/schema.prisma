@@ -354,7 +354,10 @@ model AutomationTrigger {
   keywords      String[]
   // For COMMENT_KEYWORD: optional specific post/reel and public reply text.
   mediaId       String?
+  /// Legacy single public reply. Kept for existing rows; prefer publicReplies.
   publicReply   String?
+  /// Public reply variants; one is picked at random so replies look human.
+  publicReplies String[]         @default([])
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
