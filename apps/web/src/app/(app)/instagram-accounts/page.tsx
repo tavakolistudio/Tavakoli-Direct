@@ -12,7 +12,7 @@ import {
   TR,
 } from '@tavakoli/ui';
 import { PageHeader } from '@/components/page-header';
-import { ACCOUNT_STATUS_LABELS, TOKEN_STATUS_LABELS } from '@/lib/labels';
+import { ACCOUNT_STATUS_LABELS, TOKEN_STATUS_LABELS, WEBHOOK_STATUS_LABELS } from '@/lib/labels';
 import { formatRelativeFa } from '@/lib/dates';
 import { requireUser } from '@/lib/guards';
 import { clientScope } from '@/server/queries';
@@ -111,6 +111,7 @@ export default async function InstagramAccountsPage({
                 <TH>مجموعه</TH>
                 <TH>وضعیت</TH>
                 <TH>توکن</TH>
+                <TH>وبهوک</TH>
                 <TH>آخرین وبهوک</TH>
                 <TH>اتوماسیون</TH>
                 {user.role === 'ADMIN' ? <TH>عملیات</TH> : null}
@@ -144,6 +145,19 @@ export default async function InstagramAccountsPage({
                   <TD>
                     <Badge tone={a.tokenStatus === 'VALID' ? 'success' : 'warning'}>
                       {TOKEN_STATUS_LABELS[a.tokenStatus]}
+                    </Badge>
+                  </TD>
+                  <TD>
+                    <Badge
+                      tone={
+                        a.webhookStatus === 'VERIFIED'
+                          ? 'success'
+                          : a.webhookStatus === 'FAILED'
+                            ? 'danger'
+                            : 'warning'
+                      }
+                    >
+                      {WEBHOOK_STATUS_LABELS[a.webhookStatus]}
                     </Badge>
                   </TD>
                   <TD>{formatRelativeFa(a.lastWebhookAt)}</TD>
