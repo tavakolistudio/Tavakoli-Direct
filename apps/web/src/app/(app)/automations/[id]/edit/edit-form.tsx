@@ -6,6 +6,7 @@ import { useFormStatus } from 'react-dom';
 import { Button, Input, Label, Select, Textarea } from '@tavakoli/ui';
 import { MATCH_MODE_LABELS, TRIGGER_HINTS, TRIGGER_LABELS } from '@/lib/labels';
 import { updateAutomationAction, type AutomationFormState } from '@/server/actions/automations';
+import { StepsEditor, type StepDraft } from '../../steps-editor';
 
 const KEYWORD_TRIGGERS = ['DM_KEYWORD', 'COMMENT_KEYWORD', 'STORY_REPLY_KEYWORD'];
 
@@ -15,7 +16,7 @@ export interface AutomationEditValues {
   triggerType: string;
   matchMode: string;
   keywords: string;
-  responseText: string;
+  steps: StepDraft[];
   priority: number;
   cooldownSeconds: number;
   mediaId: string;
@@ -122,14 +123,7 @@ export function AutomationEditForm({
       </Section>
 
       <Section title="پاسخ">
-        <Label htmlFor="responseText">متن پاسخ (دایرکت)</Label>
-        <Textarea
-          id="responseText"
-          name="responseText"
-          defaultValue={values.responseText}
-          rows={5}
-          required
-        />
+        <StepsEditor initial={values.steps} />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="priority">اولویت</Label>

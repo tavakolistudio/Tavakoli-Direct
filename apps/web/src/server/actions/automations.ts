@@ -9,7 +9,7 @@ import {
   type NormalizedInstagramEvent,
   type EvaluationContext,
 } from '@tavakoli/core';
-import { prisma } from '@tavakoli/database';
+import { prisma, type Prisma } from '@tavakoli/database';
 import { audit } from '@/lib/audit';
 import { assertClientAccess, requireAdmin, requireUser } from '@/lib/guards';
 import { toAutomationDef } from '@/server/automation-map';
@@ -28,7 +28,8 @@ const createSchema = z.object({
   ]),
   matchMode: z.enum(['EXACT', 'CONTAINS', 'STARTS_WITH', 'ANY_OF']).optional(),
   keywords: z.string().optional(),
-  responseText: z.string().min(1, 'متن پاسخ را وارد کنید.'),
+  /** JSON array produced by the steps editor. */
+  steps: z.string().min(1, 'حداقل یک گام پاسخ لازم است.'),
   /** COMMENT_KEYWORD only: limit to one post, and optionally reply publicly too. */
   mediaId: z.string().optional(),
   /** One variant per line; a random one is used for each comment. */
@@ -43,6 +44,56 @@ function parseLines(raw: string | undefined): string[] {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+/** Action types the worker actually implements; anything else is rejected. */
+const stepSchema = z.object({
+  actionType: z.enum(['SEND_TEXT', 'SEND_IMAGE', 'WAIT', 'NEEDS_HUMAN']),
+  text: z.string().optional(),
+  mediaUrl: z.string().optional(),
+  caption: z.string().optional(),
+  seconds: z.coerce.number().int().min(1).max(60).optional(),
+});
+
+/**
+ * Turns the steps editor payload into Prisma step rows. Empty text steps are a
+ * common slip in the UI, so they are rejected rather than silently sending "".
+ */
+type StepRow = {
+  order: number;
+  actionType: z.infer<typeof stepSchema>['actionType'];
+  config: Prisma.InputJsonValue;
+};
+
+function parseSteps(raw: string): { steps: StepRow[] } | { error: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { error: 'گام‌های پاسخ نامعتبر است.' };
+  }
+  const result = z.array(stepSchema).min(1).safeParse(parsed);
+  if (!result.success) return { error: 'گام‌های پاسخ نامعتبر است.' };
+
+  const steps: StepRow[] = [];
+  for (const [index, step] of result.data.entries()) {
+    let config: Prisma.InputJsonValue = {};
+    if (step.actionType === 'SEND_TEXT') {
+      const text = (step.text ?? '').trim();
+      if (!text) return { error: `متن گام ${index + 1} خالی است.` };
+      config = { text };
+    } else if (step.actionType === 'SEND_IMAGE') {
+      const mediaUrl = (step.mediaUrl ?? '').trim();
+      if (!/^https?:\/\//.test(mediaUrl)) {
+        return { error: `آدرس عکس گام ${index + 1} باید با http یا https شروع شود.` };
+      }
+      config = { mediaUrl, caption: (step.caption ?? '').trim() || undefined };
+    } else if (step.actionType === 'WAIT') {
+      config = { seconds: step.seconds ?? 3 };
+    }
+    steps.push({ order: index, actionType: step.actionType, config });
+  }
+  return { steps };
 }
 
 export interface AutomationFormState {
@@ -76,6 +127,9 @@ export async function createAutomationAction(
     return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
   }
 
+  const parsedSteps = parseSteps(d.steps);
+  if ('error' in parsedSteps) return { error: parsedSteps.error };
+
   const automation = await prisma.automation.create({
     data: {
       clientId: account.clientId,
@@ -93,7 +147,7 @@ export async function createAutomationAction(
           publicReplies: d.triggerType === 'COMMENT_KEYWORD' ? parseLines(d.publicReplies) : [],
         },
       },
-      steps: { create: [{ order: 0, actionType: 'SEND_TEXT', config: { text: d.responseText } }] },
+      steps: { create: parsedSteps.steps },
     },
   });
 
@@ -143,8 +197,11 @@ export async function updateAutomationAction(
     return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
   }
 
-  // Steps are replaced wholesale: the form only edits a single SEND_TEXT reply,
-  // so rewriting is simpler and safer than diffing orders.
+  const updateSteps = parseSteps(d.steps);
+  if ('error' in updateSteps) return { error: updateSteps.error };
+
+  // Steps are replaced wholesale: rewriting the list is simpler and safer than
+  // diffing orders against what the editor sent.
   await prisma.$transaction([
     prisma.automation.update({
       where: { id: d.automationId },
@@ -162,13 +219,8 @@ export async function updateAutomationAction(
       },
     }),
     prisma.automationStep.deleteMany({ where: { automationId: d.automationId } }),
-    prisma.automationStep.create({
-      data: {
-        automationId: d.automationId,
-        order: 0,
-        actionType: 'SEND_TEXT',
-        config: { text: d.responseText },
-      },
+    prisma.automationStep.createMany({
+      data: updateSteps.steps.map((step) => ({ ...step, automationId: d.automationId })),
     }),
   ]);
 
