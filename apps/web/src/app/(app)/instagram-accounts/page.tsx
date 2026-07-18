@@ -17,13 +17,31 @@ import { formatRelativeFa } from '@/lib/dates';
 import { requireUser } from '@/lib/guards';
 import { clientScope } from '@/server/queries';
 import { prisma } from '@tavakoli/database';
+import { getInstagramAppCredentials } from '@/server/instagram-oauth';
 import { ConnectMockForm } from './connect-form';
+import { ConnectInstagram } from './connect-instagram';
 
 export const dynamic = 'force-dynamic';
 
-export default async function InstagramAccountsPage(): Promise<React.ReactElement> {
+const OAUTH_ERRORS: Record<string, string> = {
+  not_configured: 'اعتبارنامه‌های اینستاگرام هنوز تنظیم نشده‌اند.',
+  missing_client: 'ابتدا مجموعه را انتخاب کنید.',
+  denied: 'دسترسی توسط کاربر رد شد.',
+  missing_code: 'پاسخ اینستاگرام ناقص بود. دوباره تلاش کنید.',
+  state_mismatch: 'اعتبارسنجی امنیتی ناموفق بود. دوباره تلاش کنید.',
+  state_invalid: 'اعتبارسنجی امنیتی ناموفق بود. دوباره تلاش کنید.',
+  exchange_failed: 'تبادل توکن با اینستاگرام ناموفق بود. تنظیمات اپ Meta را بررسی کنید.',
+};
+
+export default async function InstagramAccountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ connected?: string; error?: string }>;
+}): Promise<React.ReactElement> {
+  const { connected, error } = await searchParams;
   const user = await requireUser();
   const scope = await clientScope(user);
+  const igConfigured = getInstagramAppCredentials() !== null;
 
   const [accounts, clients] = await Promise.all([
     prisma.instagramAccount.findMany({
@@ -43,19 +61,41 @@ export default async function InstagramAccountsPage(): Promise<React.ReactElemen
     <div>
       <PageHeader title="پیج‌های اینستاگرام" description="وضعیت اتصال و توکن هر پیج" />
 
+      {connected ? (
+        <p className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
+          پیج <strong>@{connected}</strong> با موفقیت به‌صورت رسمی متصل شد. ✅
+        </p>
+      ) : null}
+      {error ? (
+        <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {OAUTH_ERRORS[error] ?? 'اتصال ناموفق بود.'}
+        </p>
+      ) : null}
+
       {user.role === 'ADMIN' && clients.length > 0 ? (
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>اتصال پیج (حالت آزمایشی)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ConnectMockForm clients={clients} />
-            <p className="mt-3 text-xs text-neutral-500">
-              اتصال رسمی از طریق Meta در بخش تنظیمات ← یکپارچه‌سازی‌ها انجام می‌شود و تا زمان تنظیم
-              اعتبارنامه‌ها غیرفعال است.
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>اتصال رسمی پیج اینستاگرام</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ConnectInstagram clients={clients} configured={igConfigured} />
+              <p className="mt-3 text-xs text-neutral-500">
+                با زدن این دکمه به صفحهٔ رسمی اینستاگرام می‌روید و پس از تأیید، پیج متصل می‌شود.
+                توکن دسترسی به‌صورت رمزنگاری‌شده ذخیره می‌شود و هرگز در مرورگر نمایش داده نمی‌شود.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>اتصال پیج آزمایشی (برای تست)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ConnectMockForm clients={clients} />
+            </CardContent>
+          </Card>
+        </>
       ) : null}
 
       <Card className="p-2">

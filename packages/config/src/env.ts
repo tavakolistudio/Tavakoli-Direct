@@ -42,6 +42,11 @@ const baseSchema = z.object({
   META_GRAPH_API_VERSION: z.string().default('v21.0'),
   META_REDIRECT_URI: z.string().url().optional(),
 
+  // "Instagram API with Instagram Login" uses its own Instagram app id/secret,
+  // which differ from the Facebook app credentials. Falls back to META_* when unset.
+  INSTAGRAM_APP_ID: z.string().optional(),
+  INSTAGRAM_APP_SECRET: z.string().optional(),
+
   STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_ACCESS_KEY: z.string().optional(),
