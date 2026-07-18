@@ -79,3 +79,50 @@ export async function toggleAccountAutomationAction(
   });
   revalidatePath(`/instagram-accounts/${accountId}`);
 }
+
+export interface DeleteAccountResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Disconnect and remove an Instagram account. Soft-deletes the account (so past
+ * conversations, contacts and reports stay intact) and hard-deletes the stored
+ * credential so the encrypted access token no longer exists.
+ */
+export async function deleteInstagramAccountAction(
+  accountId: string,
+): Promise<DeleteAccountResult> {
+  const admin = await requireAdmin();
+
+  const account = await prisma.instagramAccount.findUnique({
+    where: { id: accountId },
+    select: { id: true, username: true },
+  });
+  if (!account) return { ok: false, error: 'پیج یافت نشد.' };
+
+  // Remove the token first — it must not survive a disconnect.
+  await prisma.instagramCredential.deleteMany({ where: { accountId } });
+
+  await prisma.instagramAccount.update({
+    where: { id: accountId },
+    data: {
+      status: 'DISCONNECTED',
+      tokenStatus: 'MISSING',
+      automationEnabled: false,
+      connectionError: null,
+      deletedAt: new Date(),
+    },
+  });
+
+  await audit({
+    actorId: admin.id,
+    action: 'INSTAGRAM_DISCONNECT',
+    entityType: 'InstagramAccount',
+    entityId: accountId,
+    metadata: { username: account.username },
+  });
+
+  revalidatePath('/instagram-accounts');
+  return { ok: true };
+}

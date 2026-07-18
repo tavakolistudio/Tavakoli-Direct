@@ -20,6 +20,7 @@ import { prisma } from '@tavakoli/database';
 import { getInstagramAppCredentials } from '@/server/instagram-oauth';
 import { ConnectMockForm } from './connect-form';
 import { ConnectInstagram } from './connect-instagram';
+import { DeleteAccountButton } from './delete-account-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +112,7 @@ export default async function InstagramAccountsPage({
                 <TH>توکن</TH>
                 <TH>آخرین وبهوک</TH>
                 <TH>اتوماسیون</TH>
+                {user.role === 'ADMIN' ? <TH>عملیات</TH> : null}
               </TR>
             </THead>
             <tbody>
@@ -145,6 +147,11 @@ export default async function InstagramAccountsPage({
                   </TD>
                   <TD>{formatRelativeFa(a.lastWebhookAt)}</TD>
                   <TD>{a.automationEnabled ? 'فعال' : 'غیرفعال'}</TD>
+                  {user.role === 'ADMIN' ? (
+                    <TD>
+                      <DeleteAccountButton accountId={a.id} username={a.username} />
+                    </TD>
+                  ) : null}
                 </TR>
               ))}
             </tbody>
