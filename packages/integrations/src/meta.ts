@@ -20,7 +20,13 @@ import type {
   WebhookVerifyInput,
 } from './types';
 
-const GRAPH_BASE = 'https://graph.facebook.com';
+/**
+ * Instagram API with Instagram Login issues tokens that are only valid against
+ * graph.instagram.com. Sending them to graph.facebook.com fails with
+ * "Cannot parse access token", which looks like a credential problem but is
+ * really the wrong host.
+ */
+const GRAPH_BASE = 'https://graph.instagram.com';
 
 function graphUrl(path: string): string {
   return `${GRAPH_BASE}/${env.META_GRAPH_API_VERSION}/${path}`;
@@ -185,10 +191,11 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
   }
 
   async sendPrivateReply(input: PrivateReplyInput): Promise<SendResult> {
-    // Private reply to a comment via the comment's private_replies edge.
+    // With Instagram Login a private reply is a normal message addressed to the
+    // comment rather than to a user id — there is no private_replies edge here.
     return graphPost(
-      `${input.commentId}/private_replies`,
-      { message: input.text },
+      `${input.providerAccountId}/messages`,
+      { recipient: { comment_id: input.commentId }, message: { text: input.text } },
       requireToken(input.accessToken),
     );
   }
