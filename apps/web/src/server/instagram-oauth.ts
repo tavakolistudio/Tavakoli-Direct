@@ -136,3 +136,39 @@ export async function fetchInstagramProfile(accessToken: string): Promise<Instag
   }
   return { id: json.id, username: json.username ?? json.id };
 }
+
+/** Webhook fields the panel reacts to. */
+export const WEBHOOK_FIELDS = ['messages', 'comments'] as const;
+
+export interface SubscribeResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Subscribes the app to webhooks FOR THIS ACCOUNT.
+ *
+ * Ticking the fields in the Meta dashboard only declares which events the app
+ * wants; Instagram still delivers nothing until each account is individually
+ * subscribed through this edge. Without it a page connects and stores a valid
+ * token, yet no webhook ever arrives.
+ */
+export async function subscribeAccountToWebhooks(accessToken: string): Promise<SubscribeResult> {
+  const url = new URL('https://graph.instagram.com/v21.0/me/subscribed_apps');
+  url.searchParams.set('subscribed_fields', WEBHOOK_FIELDS.join(','));
+  url.searchParams.set('access_token', accessToken);
+
+  try {
+    const res = await fetch(url, { method: 'POST' });
+    const json = (await res.json().catch(() => ({}))) as {
+      success?: boolean;
+      error?: { message?: string };
+    };
+    if (!res.ok || json.success === false) {
+      return { ok: false, error: json.error?.message ?? `subscribe failed (${res.status})` };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
