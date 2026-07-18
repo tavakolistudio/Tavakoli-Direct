@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { Button, Input, Label, Select, Textarea } from '@tavakoli/ui';
 import { MATCH_MODE_LABELS, TRIGGER_HINTS, TRIGGER_LABELS } from '@/lib/labels';
 import { createAutomationAction, type AutomationFormState } from '@/server/actions/automations';
+import { StepsEditor } from '../steps-editor';
 
 const KEYWORD_TRIGGERS = ['DM_KEYWORD', 'COMMENT_KEYWORD', 'STORY_REPLY_KEYWORD'];
 
@@ -125,13 +126,7 @@ export function AutomationWizard({
       ) : null}
 
       <Step n={5} title="تنظیم پاسخ">
-        <Label htmlFor="responseText">متن پاسخ (در دایرکت)</Label>
-        <Textarea
-          id="responseText"
-          name="responseText"
-          placeholder="سلام، برای دریافت تعرفه لطفاً نوع خدمت موردنظرتان را انتخاب کنید."
-          required
-        />
+        <StepsEditor initial={[]} />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="priority">اولویت</Label>

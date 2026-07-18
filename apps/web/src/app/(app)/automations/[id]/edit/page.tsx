@@ -28,8 +28,21 @@ export default async function AutomationEditPage({
   if (!automation) notFound();
   await assertClientAccess(user, automation.clientId);
 
-  const textStep = automation.steps.find((s) => s.actionType === 'SEND_TEXT');
-  const responseText = ((textStep?.config as { text?: string } | null)?.text ?? '').toString();
+  const steps = automation.steps.map((s) => {
+    const cfg = (s.config ?? {}) as {
+      text?: string;
+      mediaUrl?: string;
+      caption?: string;
+      seconds?: number;
+    };
+    return {
+      actionType: s.actionType as string,
+      text: cfg.text ?? '',
+      mediaUrl: cfg.mediaUrl ?? '',
+      caption: cfg.caption ?? '',
+      seconds: cfg.seconds ?? 3,
+    };
+  });
 
   return (
     <div>
@@ -46,7 +59,7 @@ export default async function AutomationEditPage({
               triggerType: automation.trigger?.type ?? 'DM_KEYWORD',
               matchMode: automation.trigger?.matchMode ?? 'CONTAINS',
               keywords: (automation.trigger?.keywords ?? []).join('، '),
-              responseText,
+              steps,
               priority: automation.priority,
               cooldownSeconds: automation.cooldownSeconds,
               mediaId: automation.trigger?.mediaId ?? '',
