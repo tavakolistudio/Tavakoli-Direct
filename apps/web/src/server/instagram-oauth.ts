@@ -119,22 +119,30 @@ export interface InstagramProfile {
   username: string;
 }
 
-/** Fetch the connected professional account's id and username. */
+/**
+ * Fetch the connected professional account's id and username.
+ *
+ * `id` here is app-scoped and does NOT match the account id Meta puts in
+ * webhook payloads — `user_id` does. Storing the wrong one means every incoming
+ * event fails to find its account, so prefer user_id and fall back to id.
+ */
 export async function fetchInstagramProfile(accessToken: string): Promise<InstagramProfile> {
   const url = new URL('https://graph.instagram.com/me');
-  url.searchParams.set('fields', 'id,username');
+  url.searchParams.set('fields', 'id,user_id,username');
   url.searchParams.set('access_token', accessToken);
 
   const res = await fetch(url, { method: 'GET' });
   const json = (await res.json().catch(() => ({}))) as {
     id?: string;
+    user_id?: string;
     username?: string;
     error?: { message?: string };
   };
-  if (!res.ok || !json.id) {
+  if (!res.ok || !(json.user_id ?? json.id)) {
     throw new Error(json.error?.message ?? `profile fetch failed (${res.status})`);
   }
-  return { id: json.id, username: json.username ?? json.id };
+  const id = String(json.user_id ?? json.id);
+  return { id, username: json.username ?? id };
 }
 
 /** Webhook fields the panel reacts to. */
