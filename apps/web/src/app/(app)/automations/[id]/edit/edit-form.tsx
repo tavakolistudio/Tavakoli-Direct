@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button, Input, Label, Select, Textarea } from '@tavakoli/ui';
-import { MATCH_MODE_LABELS, TRIGGER_LABELS } from '@/lib/labels';
+import { MATCH_MODE_LABELS, TRIGGER_HINTS, TRIGGER_LABELS } from '@/lib/labels';
 import { updateAutomationAction, type AutomationFormState } from '@/server/actions/automations';
 
 const KEYWORD_TRIGGERS = ['DM_KEYWORD', 'COMMENT_KEYWORD', 'STORY_REPLY_KEYWORD'];
@@ -19,7 +19,7 @@ export interface AutomationEditValues {
   priority: number;
   cooldownSeconds: number;
   mediaId: string;
-  publicReply: string;
+  publicReplies: string;
 }
 
 function Submit(): React.ReactElement {
@@ -79,6 +79,9 @@ export function AutomationEditForm({
             </option>
           ))}
         </Select>
+        {TRIGGER_HINTS[triggerType] ? (
+          <p className="text-xs text-neutral-500">{TRIGGER_HINTS[triggerType]}</p>
+        ) : null}
 
         {isKeyword ? (
           <>
@@ -102,13 +105,18 @@ export function AutomationEditForm({
             <p className="text-xs text-neutral-500">
               اگر خالی بماند، روی کامنت همهٔ پست‌ها کار می‌کند.
             </p>
-            <Label htmlFor="publicReply">پاسخ عمومی زیر کامنت (اختیاری)</Label>
-            <Input
-              id="publicReply"
-              name="publicReply"
-              defaultValue={values.publicReply}
-              placeholder="مثلاً: دایرکت رو چک کن 📩"
+            <Label htmlFor="publicReplies">پاسخ‌های عمومی زیر کامنت (اختیاری)</Label>
+            <Textarea
+              id="publicReplies"
+              name="publicReplies"
+              defaultValue={values.publicReplies}
+              rows={4}
+              placeholder={'براتون دایرکت شد ✅\nپیام دادیم بهتون 📩\nتو دایرکت جواب دادیم'}
             />
+            <p className="text-xs text-neutral-500">
+              هر خط یک پاسخ. برای هر کامنت یکی از آن‌ها به‌صورت تصادفی انتخاب می‌شود تا پاسخ‌ها
+              تکراری و رباتیک به نظر نرسند. خالی بگذارید تا زیر کامنت چیزی نوشته نشود.
+            </p>
           </>
         ) : null}
       </Section>

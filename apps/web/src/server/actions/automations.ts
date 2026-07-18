@@ -31,10 +31,19 @@ const createSchema = z.object({
   responseText: z.string().min(1, 'متن پاسخ را وارد کنید.'),
   /** COMMENT_KEYWORD only: limit to one post, and optionally reply publicly too. */
   mediaId: z.string().optional(),
-  publicReply: z.string().optional(),
+  /** One variant per line; a random one is used for each comment. */
+  publicReplies: z.string().optional(),
   priority: z.coerce.number().int().min(0).default(0),
   cooldownSeconds: z.coerce.number().int().min(0).default(0),
 });
+
+/** Splits the textarea into trimmed, non-empty reply variants. */
+function parseLines(raw: string | undefined): string[] {
+  return (raw ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
 export interface AutomationFormState {
   error?: string;
@@ -80,6 +89,8 @@ export async function createAutomationAction(
           type: d.triggerType,
           matchMode: isKeyword ? (d.matchMode ?? 'CONTAINS') : null,
           keywords,
+          mediaId: d.triggerType === 'COMMENT_KEYWORD' ? d.mediaId?.trim() || null : null,
+          publicReplies: d.triggerType === 'COMMENT_KEYWORD' ? parseLines(d.publicReplies) : [],
         },
       },
       steps: { create: [{ order: 0, actionType: 'SEND_TEXT', config: { text: d.responseText } }] },
@@ -146,7 +157,8 @@ export async function updateAutomationAction(
         matchMode: isKeyword ? (d.matchMode ?? 'CONTAINS') : null,
         keywords,
         mediaId: d.triggerType === 'COMMENT_KEYWORD' ? d.mediaId?.trim() || null : null,
-        publicReply: d.triggerType === 'COMMENT_KEYWORD' ? d.publicReply?.trim() || null : null,
+        publicReply: null,
+        publicReplies: d.triggerType === 'COMMENT_KEYWORD' ? parseLines(d.publicReplies) : [],
       },
     }),
     prisma.automationStep.deleteMany({ where: { automationId: d.automationId } }),
@@ -282,4 +294,36 @@ export async function dryRunAction(input: {
     })),
     plannedActions,
   };
+}
+
+/**
+ * Soft-deletes an automation. Execution history keeps referencing it, so the
+ * row stays and is simply hidden everywhere the panel lists automations.
+ */
+export async function deleteAutomationAction(
+  automationId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireAdmin();
+
+  const automation = await prisma.automation.findFirst({
+    where: { id: automationId, deletedAt: null },
+    select: { id: true, name: true },
+  });
+  if (!automation) return { ok: false, error: 'اتوماسیون یافت نشد.' };
+
+  await prisma.automation.update({
+    where: { id: automationId },
+    data: { status: 'ARCHIVED', deletedAt: new Date() },
+  });
+
+  await audit({
+    actorId: user.id,
+    action: 'AUTOMATION_DELETE',
+    entityType: 'Automation',
+    entityId: automationId,
+    metadata: { name: automation.name },
+  });
+
+  revalidatePath('/automations');
+  return { ok: true };
 }

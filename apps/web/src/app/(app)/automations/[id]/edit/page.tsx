@@ -50,7 +50,10 @@ export default async function AutomationEditPage({
               priority: automation.priority,
               cooldownSeconds: automation.cooldownSeconds,
               mediaId: automation.trigger?.mediaId ?? '',
-              publicReply: automation.trigger?.publicReply ?? '',
+              publicReplies: (automation.trigger?.publicReplies?.length
+                ? automation.trigger.publicReplies
+                : [automation.trigger?.publicReply].filter(Boolean)
+              ).join('\n'),
             }}
           />
         </CardContent>

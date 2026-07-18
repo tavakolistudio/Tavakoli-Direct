@@ -13,11 +13,21 @@ export const NAV_ITEMS = [
 ] as const;
 
 export const TRIGGER_LABELS: Record<string, string> = {
-  DM_KEYWORD: 'کلمه کلیدی در دایرکت',
-  COMMENT_KEYWORD: 'کلمه کلیدی در کامنت',
-  STORY_REPLY_KEYWORD: 'پاسخ به استوری',
-  OUTSIDE_BUSINESS_HOURS: 'خارج از ساعت کاری',
-  NO_RULE_MATCHED: 'ارجاع به انسان (پیش‌فرض)',
+  DM_KEYWORD: 'وقتی کسی در دایرکت کلمه‌ای می‌فرستد',
+  COMMENT_KEYWORD: 'وقتی کسی زیر پست کامنت می‌گذارد',
+  STORY_REPLY_KEYWORD: 'وقتی کسی به استوری جواب می‌دهد',
+  OUTSIDE_BUSINESS_HOURS: 'وقتی خارج از ساعت کاری پیام می‌آید',
+  NO_RULE_MATCHED: 'وقتی هیچ قانونی جواب نداد (ارجاع به اپراتور)',
+};
+
+/** One-line explanation shown under the trigger picker. */
+export const TRIGGER_HINTS: Record<string, string> = {
+  DM_KEYWORD: 'پاسخ در همان گفتگوی دایرکت فرستاده می‌شود.',
+  COMMENT_KEYWORD:
+    'پاسخ به‌صورت دایرکت برای کامنت‌گذار می‌رود. می‌توانید هم‌زمان زیر کامنت هم جواب عمومی بگذارید.',
+  STORY_REPLY_KEYWORD: 'ممکن است بسته به تنظیمات Meta در دسترس نباشد.',
+  OUTSIDE_BUSINESS_HOURS: 'ساعت کاری در تنظیمات هر مجموعه مشخص می‌شود.',
+  NO_RULE_MATCHED: 'گفتگو به کارتابل اپراتور منتقل می‌شود تا انسان جواب دهد.',
 };
 
 export const MATCH_MODE_LABELS: Record<string, string> = {
