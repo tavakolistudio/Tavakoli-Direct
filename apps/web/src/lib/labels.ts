@@ -90,3 +90,9 @@ export const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'مدیر',
   OPERATOR: 'اپراتور',
 };
+
+export const WEBHOOK_STATUS_LABELS: Record<string, string> = {
+  UNKNOWN: 'فعال نشده',
+  VERIFIED: 'فعال',
+  FAILED: 'ناموفق',
+};
