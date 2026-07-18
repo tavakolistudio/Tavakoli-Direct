@@ -591,6 +591,21 @@ export default function LandingPage(): React.ReactElement {
                   ورود اعضا
                 </Link>
               </li>
+              <li>
+                <Link href="/privacy" className="hover:text-neutral-800">
+                  حریم خصوصی
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-neutral-800">
+                  شرایط استفاده
+                </Link>
+              </li>
+              <li>
+                <Link href="/data-deletion" className="hover:text-neutral-800">
+                  حذف داده‌ها
+                </Link>
+              </li>
             </ul>
           </div>
 
