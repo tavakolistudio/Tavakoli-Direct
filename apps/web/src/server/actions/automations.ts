@@ -29,6 +29,9 @@ const createSchema = z.object({
   matchMode: z.enum(['EXACT', 'CONTAINS', 'STARTS_WITH', 'ANY_OF']).optional(),
   keywords: z.string().optional(),
   responseText: z.string().min(1, 'متن پاسخ را وارد کنید.'),
+  /** COMMENT_KEYWORD only: limit to one post, and optionally reply publicly too. */
+  mediaId: z.string().optional(),
+  publicReply: z.string().optional(),
   priority: z.coerce.number().int().min(0).default(0),
   cooldownSeconds: z.coerce.number().int().min(0).default(0),
 });
@@ -91,6 +94,80 @@ export async function createAutomationAction(
   });
   revalidatePath('/automations');
   redirect(`/automations/${automation.id}`);
+}
+
+const updateSchema = createSchema
+  .omit({ instagramAccountId: true })
+  .extend({ automationId: z.string().min(1) });
+
+/**
+ * Edits an existing automation in place: name, trigger, keywords and reply text.
+ * The page it belongs to is deliberately NOT editable — moving an automation
+ * between pages would silently change which audience it answers.
+ */
+export async function updateAutomationAction(
+  _prev: AutomationFormState,
+  formData: FormData,
+): Promise<AutomationFormState> {
+  const user = await requireAdmin();
+  const parsed = updateSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'اطلاعات نامعتبر است.' };
+  const d = parsed.data;
+
+  const existing = await prisma.automation.findUnique({
+    where: { id: d.automationId },
+    select: { id: true, clientId: true },
+  });
+  if (!existing) return { error: 'اتوماسیون یافت نشد.' };
+
+  const isKeyword = (KEYWORD_TRIGGERS as readonly string[]).includes(d.triggerType);
+  const keywords = isKeyword
+    ? (d.keywords ?? '')
+        .split(/[,،\n]/)
+        .map((k) => k.trim())
+        .filter(Boolean)
+    : [];
+
+  if (isKeyword && keywords.length === 0) {
+    return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
+  }
+
+  // Steps are replaced wholesale: the form only edits a single SEND_TEXT reply,
+  // so rewriting is simpler and safer than diffing orders.
+  await prisma.$transaction([
+    prisma.automation.update({
+      where: { id: d.automationId },
+      data: { name: d.name, priority: d.priority, cooldownSeconds: d.cooldownSeconds },
+    }),
+    prisma.automationTrigger.update({
+      where: { automationId: d.automationId },
+      data: {
+        type: d.triggerType,
+        matchMode: isKeyword ? (d.matchMode ?? 'CONTAINS') : null,
+        keywords,
+        mediaId: d.triggerType === 'COMMENT_KEYWORD' ? d.mediaId?.trim() || null : null,
+        publicReply: d.triggerType === 'COMMENT_KEYWORD' ? d.publicReply?.trim() || null : null,
+      },
+    }),
+    prisma.automationStep.deleteMany({ where: { automationId: d.automationId } }),
+    prisma.automationStep.create({
+      data: {
+        automationId: d.automationId,
+        order: 0,
+        actionType: 'SEND_TEXT',
+        config: { text: d.responseText },
+      },
+    }),
+  ]);
+
+  await audit({
+    actorId: user.id,
+    action: 'AUTOMATION_UPDATE',
+    entityType: 'Automation',
+    entityId: d.automationId,
+  });
+  revalidatePath('/automations');
+  redirect(`/automations/${d.automationId}`);
 }
 
 export async function setAutomationStatusAction(

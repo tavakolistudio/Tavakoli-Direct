@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge, Card, CardContent, CardHeader, CardTitle } from '@tavakoli/ui';
 import { PageHeader } from '@/components/page-header';
@@ -37,7 +38,15 @@ export default async function AutomationDetailPage({
         description={`${automation.client.name} — @${automation.instagramAccount.username}`}
         action={
           user.role === 'ADMIN' ? (
-            <StatusControls automationId={automation.id} status={automation.status} />
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/automations/${automation.id}/edit`}
+                className="border-brand text-brand-dark hover:bg-brand/5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+              >
+                ویرایش
+              </Link>
+              <StatusControls automationId={automation.id} status={automation.status} />
+            </div>
           ) : null
         }
       />
