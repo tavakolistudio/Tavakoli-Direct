@@ -11,18 +11,18 @@ import { env } from '@tavakoli/config';
  */
 export const MEDIA_BUCKET = 'media';
 
-/** Formats Instagram accepts for voice messages. */
-export const AUDIO_MIME_TYPES = ['audio/mp4', 'audio/m4a', 'audio/x-m4a', 'audio/mpeg'] as const;
-
-export const MAX_AUDIO_BYTES = 8 * 1024 * 1024;
+/** Formats Instagram accepts, mapped to the extension we store them under. */
+const ALLOWED: Record<string, { ext: string; maxBytes: number }> = {
+  'audio/mp4': { ext: 'm4a', maxBytes: 8 * 1024 * 1024 },
+  'audio/m4a': { ext: 'm4a', maxBytes: 8 * 1024 * 1024 },
+  'audio/x-m4a': { ext: 'm4a', maxBytes: 8 * 1024 * 1024 },
+  'audio/mpeg': { ext: 'mp3', maxBytes: 8 * 1024 * 1024 },
+  'image/jpeg': { ext: 'jpg', maxBytes: 8 * 1024 * 1024 },
+  'image/png': { ext: 'png', maxBytes: 8 * 1024 * 1024 },
+};
 
 export function isStorageConfigured(): boolean {
   return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
-}
-
-function extensionFor(mimeType: string): string {
-  if (mimeType === 'audio/mpeg') return 'mp3';
-  return 'm4a';
 }
 
 export interface UploadResult {
@@ -30,19 +30,22 @@ export interface UploadResult {
   error?: string;
 }
 
-export async function uploadAudio(file: File): Promise<UploadResult> {
+export async function uploadMedia(file: File): Promise<UploadResult> {
   if (!isStorageConfigured()) {
     return { error: 'فضای ذخیره‌سازی هنوز تنظیم نشده است.' };
   }
-  if (!(AUDIO_MIME_TYPES as readonly string[]).includes(file.type)) {
-    return { error: 'فقط فایل m4a یا mp3 پذیرفته می‌شود.' };
+
+  const spec = ALLOWED[file.type];
+  if (!spec) {
+    return { error: 'فقط فایل m4a، mp3، jpg یا png پذیرفته می‌شود.' };
   }
-  if (file.size > MAX_AUDIO_BYTES) {
+  if (file.size > spec.maxBytes) {
     return { error: 'حجم فایل نباید بیشتر از ۸ مگابایت باشد.' };
   }
 
   const base = env.SUPABASE_URL!.replace(/\/$/, '');
-  const objectName = `audio/${randomBytes(16).toString('hex')}.${extensionFor(file.type)}`;
+  const folder = file.type.startsWith('audio/') ? 'audio' : 'image';
+  const objectName = `${folder}/${randomBytes(16).toString('hex')}.${spec.ext}`;
 
   const res = await fetch(`${base}/storage/v1/object/${MEDIA_BUCKET}/${objectName}`, {
     method: 'POST',

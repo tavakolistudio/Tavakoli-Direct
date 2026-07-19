@@ -28,7 +28,7 @@ const STEP_LABELS: Record<string, string> = {
 
 const STEP_HINTS: Record<string, string> = {
   SEND_TEXT: 'برای کامنت، این پیام به‌صورت دایرکت برای کامنت‌گذار می‌رود.',
-  SEND_IMAGE: 'عکس باید روی یک آدرس اینترنتی عمومی باشد تا اینستاگرام بتواند بخواندش.',
+  SEND_IMAGE: 'فایل jpg یا png را آپلود کنید، یا آدرس مستقیم یک عکس عمومی را بگذارید.',
   SEND_AUDIO: 'فایل m4a یا mp3، حداکثر ۸ مگابایت. پس از آپلود برای مخاطب ارسال می‌شود.',
   WAIT: 'کمی صبر می‌کند تا پیام‌ها پشت سر هم و طبیعی‌تر برسند.',
   NEEDS_HUMAN: 'گفتگو به کارتابل اپراتور می‌رود تا انسان جواب دهد.',
@@ -45,13 +45,13 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
   const [uploading, setUploading] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  async function uploadAudioFile(index: number, file: File): Promise<void> {
+  async function uploadFile(index: number, file: File): Promise<void> {
     setUploadError(null);
     setUploading(index);
     try {
       const body = new FormData();
       body.append('file', file);
-      const res = await fetch('/api/uploads/audio', { method: 'POST', body });
+      const res = await fetch('/api/uploads/media', { method: 'POST', body });
       const json = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !json.url) {
         setUploadError(json.error ?? 'آپلود ناموفق بود.');
@@ -127,7 +127,28 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
 
           {step.actionType === 'SEND_IMAGE' ? (
             <div className="space-y-2">
-              <Label htmlFor={`mediaUrl-${i}`}>آدرس عکس</Label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                className="block w-full text-sm"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void uploadFile(i, file);
+                }}
+              />
+              {uploading === i ? (
+                <p className="text-xs text-neutral-500">در حال آپلود…</p>
+              ) : step.mediaUrl ? (
+                <p className="text-xs text-green-700">
+                  عکس آپلود شد ✅{' '}
+                  <a href={step.mediaUrl} target="_blank" rel="noreferrer" className="underline">
+                    دیدن
+                  </a>
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-500">هنوز عکسی انتخاب نشده.</p>
+              )}
+              <Label htmlFor={`mediaUrl-${i}`}>یا آدرس مستقیم عکس</Label>
               <Input
                 id={`mediaUrl-${i}`}
                 dir="ltr"
@@ -152,7 +173,7 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
                 className="block w-full text-sm"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) void uploadAudioFile(i, file);
+                  if (file) void uploadFile(i, file);
                 }}
               />
               {uploading === i ? (
