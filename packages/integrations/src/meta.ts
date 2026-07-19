@@ -12,6 +12,7 @@ import { verifySignature } from './signature';
 import type {
   CommentReplyInput,
   FollowCheckInput,
+  HideCommentInput,
   QuickReply,
   TemplateButton,
   InstagramMessagingProvider,
@@ -285,6 +286,10 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
       },
       requireToken(input.accessToken),
     );
+  }
+
+  async hideComment(input: HideCommentInput): Promise<SendResult> {
+    return graphPost(input.commentId, { hide: true }, requireToken(input.accessToken));
   }
 
   async contactFollowsBusiness(input: FollowCheckInput): Promise<boolean | null> {

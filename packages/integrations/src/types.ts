@@ -74,6 +74,11 @@ export interface CommentReplyInput {
   accessToken?: string;
 }
 
+export interface HideCommentInput {
+  commentId: string;
+  accessToken?: string;
+}
+
 export interface FollowCheckInput {
   /** Instagram-scoped id of the contact, as delivered in webhooks. */
   scopedUserId: string;
@@ -101,4 +106,6 @@ export interface InstagramMessagingProvider {
    * check itself failed, so callers can fail open instead of blocking replies.
    */
   contactFollowsBusiness(input: FollowCheckInput): Promise<boolean | null>;
+  /** Hides a comment on the account's own media (the official moderation action). */
+  hideComment(input: HideCommentInput): Promise<SendResult>;
 }

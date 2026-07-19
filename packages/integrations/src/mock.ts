@@ -103,6 +103,10 @@ export class MockInstagramProvider implements InstagramMessagingProvider {
     return true;
   }
 
+  async hideComment(): Promise<SendResult> {
+    return { success: true };
+  }
+
   async sendPublicCommentReply(input: CommentReplyInput): Promise<SendResult> {
     return resultFromMarker(input.commentId);
   }

@@ -6,6 +6,7 @@
  */
 import {
   evaluate,
+  normalizePersian,
   outboundIdempotencyKey,
   type AutomationDef,
   type EvaluationContext,
@@ -118,6 +119,31 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     where: { id: conversation.id },
     data: { lastMessageAt: new Date(), lastInboundAt: new Date() },
   });
+
+  // Moderation: hide comments containing banned words, and stop there — spam
+  // should get neither an automated reply nor an operator handoff.
+  if (
+    event.kind === 'COMMENT' &&
+    account.moderationEnabled &&
+    account.bannedWords.length > 0 &&
+    event.commentId
+  ) {
+    const normalized = normalizePersian(event.text ?? '');
+    const hit = account.bannedWords.find((w) => w && normalized.includes(normalizePersian(w)));
+    if (hit) {
+      await createOutbound({
+        accountId: account.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        kind: 'hideComment',
+        executionId: null,
+        stepIndex: 0,
+        payload: { commentId: event.commentId },
+      });
+      await markProcessed(webhookEvent.id, `comment hidden (moderation: ${hit})`);
+      return;
+    }
+  }
 
   // Respect per-account and per-conversation automation pausing.
   if (!account.automationEnabled || conversation.automationPaused) {
@@ -345,15 +371,16 @@ interface CreateOutboundInput {
   accountId: string;
   conversationId: string;
   contactId: string;
-  kind: 'sendText' | 'sendMedia' | 'privateReply' | 'publicCommentReply';
-  executionId: string;
+  kind: 'sendText' | 'sendMedia' | 'privateReply' | 'publicCommentReply' | 'hideComment';
+  /** Null for jobs not born from an automation (e.g. moderation hides). */
+  executionId: string | null;
   stepIndex: number;
   payload: Record<string, unknown>;
 }
 
 async function createOutbound(input: CreateOutboundInput): Promise<void> {
   const idempotencyKey = outboundIdempotencyKey({
-    automationExecutionId: input.executionId,
+    automationExecutionId: input.executionId ?? undefined,
     conversationId: input.conversationId,
     stepIndex: input.stepIndex,
     kind: input.kind,

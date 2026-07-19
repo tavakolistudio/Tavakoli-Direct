@@ -173,3 +173,47 @@ export async function resubscribeWebhooksAction(
   revalidatePath('/instagram-accounts');
   return result;
 }
+
+/**
+ * Saves comment-moderation settings: a banned-word list that auto-hides
+ * matching comments via Meta's official hide action.
+ */
+export async function saveModerationAction(
+  _prev: ConnectState,
+  formData: FormData,
+): Promise<ConnectState> {
+  const admin = await requireAdmin();
+  const accountId = String(formData.get('accountId') ?? '');
+  const enabled = formData.get('moderationEnabled') === 'on';
+  const words = String(formData.get('bannedWords') ?? '')
+    .split(/[,،\n]/)
+    .map((w) => w.trim())
+    .filter(Boolean)
+    .slice(0, 200);
+
+  const account = await prisma.instagramAccount.findFirst({
+    where: { id: accountId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!account) return { error: 'پیج یافت نشد.' };
+
+  if (enabled && words.length === 0) {
+    return { error: 'برای فعال‌کردن، حداقل یک کلمه لازم است.' };
+  }
+
+  await prisma.instagramAccount.update({
+    where: { id: accountId },
+    data: { moderationEnabled: enabled, bannedWords: words },
+  });
+
+  await audit({
+    actorId: admin.id,
+    action: 'MODERATION_UPDATE',
+    entityType: 'InstagramAccount',
+    entityId: accountId,
+    metadata: { enabled, wordCount: words.length },
+  });
+
+  revalidatePath(`/instagram-accounts/${accountId}`);
+  return { ok: true };
+}

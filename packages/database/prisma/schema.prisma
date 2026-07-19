@@ -264,6 +264,9 @@ model InstagramAccount {
   tokenStatus        TokenStatus   @default(MISSING)
   webhookStatus      WebhookStatus @default(UNKNOWN)
   automationEnabled  Boolean       @default(true)
+  /// Auto-hide comments containing any of bannedWords (normalized contains match).
+  moderationEnabled  Boolean       @default(false)
+  bannedWords        String[]      @default([])
   lastWebhookAt      DateTime?
   lastSyncedAt       DateTime?
   connectionError    String?

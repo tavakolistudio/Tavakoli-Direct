@@ -116,6 +116,8 @@ async function send(
         buttons: payload.buttons as unknown as TemplateButton[] | undefined,
         accessToken,
       });
+    case 'hideComment':
+      return provider.hideComment({ commentId: payload.commentId!, accessToken });
     case 'publicCommentReply':
       return provider.sendPublicCommentReply({
         providerAccountId,
