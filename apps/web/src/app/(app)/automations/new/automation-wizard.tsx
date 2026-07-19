@@ -6,6 +6,7 @@ import { Button, Input, Label, Select, Textarea } from '@tavakoli/ui';
 import { MATCH_MODE_LABELS, TRIGGER_HINTS, TRIGGER_LABELS } from '@/lib/labels';
 import { createAutomationAction, type AutomationFormState } from '@/server/actions/automations';
 import { StepsEditor } from '../steps-editor';
+import { PostPicker } from '../post-picker';
 
 const KEYWORD_TRIGGERS = ['DM_KEYWORD', 'COMMENT_KEYWORD', 'STORY_REPLY_KEYWORD'];
 
@@ -50,13 +51,20 @@ export function AutomationWizard({
 }): React.ReactElement {
   const [state, action] = useActionState<AutomationFormState, FormData>(createAutomationAction, {});
   const [triggerType, setTriggerType] = useState('DM_KEYWORD');
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const isKeyword = KEYWORD_TRIGGERS.includes(triggerType);
 
   return (
     <form action={action} className="space-y-4">
       <Step n={1} title="انتخاب پیج">
         <Label htmlFor="instagramAccountId">پیج اینستاگرام</Label>
-        <Select id="instagramAccountId" name="instagramAccountId" required>
+        <Select
+          id="instagramAccountId"
+          name="instagramAccountId"
+          value={accountId}
+          onChange={(e) => setAccountId(e.target.value)}
+          required
+        >
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
               {a.clientName} — @{a.username}
@@ -119,9 +127,7 @@ export function AutomationWizard({
             هر خط یک پاسخ. برای هر کامنت یکی به‌صورت تصادفی انتخاب می‌شود. خالی بگذارید تا زیر کامنت
             چیزی نوشته نشود.
           </p>
-          <Label htmlFor="mediaId">شناسه پست (اختیاری)</Label>
-          <Input id="mediaId" name="mediaId" dir="ltr" />
-          <p className="text-xs text-neutral-500">خالی = روی کامنت همهٔ پست‌ها کار می‌کند.</p>
+          <PostPicker accountId={accountId} initialMediaId="" />
         </Step>
       ) : null}
 

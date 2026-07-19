@@ -7,6 +7,7 @@ import { Button, Input, Label, Select, Textarea } from '@tavakoli/ui';
 import { MATCH_MODE_LABELS, TRIGGER_HINTS, TRIGGER_LABELS } from '@/lib/labels';
 import { updateAutomationAction, type AutomationFormState } from '@/server/actions/automations';
 import { StepsEditor, type StepDraft } from '../../steps-editor';
+import { PostPicker } from '../../post-picker';
 
 const KEYWORD_TRIGGERS = ['DM_KEYWORD', 'COMMENT_KEYWORD', 'STORY_REPLY_KEYWORD'];
 
@@ -19,6 +20,7 @@ export interface AutomationEditValues {
   steps: StepDraft[];
   priority: number;
   cooldownSeconds: number;
+  accountId: string;
   mediaId: string;
   publicReplies: string;
 }
@@ -101,11 +103,7 @@ export function AutomationEditForm({
 
         {isComment ? (
           <>
-            <Label htmlFor="mediaId">شناسه پست (اختیاری)</Label>
-            <Input id="mediaId" name="mediaId" defaultValue={values.mediaId} dir="ltr" />
-            <p className="text-xs text-neutral-500">
-              اگر خالی بماند، روی کامنت همهٔ پست‌ها کار می‌کند.
-            </p>
+            <PostPicker accountId={values.accountId} initialMediaId={values.mediaId} />
             <Label htmlFor="publicReplies">پاسخ‌های عمومی زیر کامنت (اختیاری)</Label>
             <Textarea
               id="publicReplies"
