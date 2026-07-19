@@ -121,7 +121,7 @@ export function AutomationEditForm({
       </Section>
 
       <Section title="پاسخ">
-        <StepsEditor initial={values.steps} />
+        <StepsEditor initial={values.steps} commentMode={isComment} />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="priority">اولویت</Label>

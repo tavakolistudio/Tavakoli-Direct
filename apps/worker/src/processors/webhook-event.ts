@@ -193,7 +193,10 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     });
   }
 
-  const orderedSteps = [...winnerRow.steps].sort((a, b) => a.order - b.order);
+  const orderedSteps = limitCommentSteps(
+    [...winnerRow.steps].sort((a, b) => a.order - b.order),
+    event.kind,
+  );
   let handoff = false;
   for (const step of orderedSteps) {
     await applyStep({
@@ -218,6 +221,32 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
 }
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
+
+/** Step kinds that produce an outbound message to the contact. */
+const MESSAGE_ACTIONS = new Set([
+  'SEND_TEXT',
+  'SEND_QUICK_REPLIES',
+  'SEND_IMAGE',
+  'SEND_AUDIO',
+  'SEND_VIDEO',
+]);
+
+/**
+ * Meta allows exactly ONE private reply per comment, and only lets the
+ * conversation continue after the user answers it. Sending later message steps
+ * would fail at the provider, so they are dropped here instead — non-message
+ * steps (handoff, tagging) still run.
+ */
+function limitCommentSteps<T extends { actionType: string }>(steps: T[], eventKind: string): T[] {
+  if (eventKind !== 'COMMENT') return steps;
+  let messageUsed = false;
+  return steps.filter((step) => {
+    if (!MESSAGE_ACTIONS.has(step.actionType)) return true;
+    if (messageUsed) return false;
+    messageUsed = true;
+    return true;
+  });
+}
 
 async function loadFireState(
   automationIds: string[],

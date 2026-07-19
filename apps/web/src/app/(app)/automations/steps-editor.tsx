@@ -48,7 +48,22 @@ function emptyStep(actionType: string): StepDraft {
   return actionType === 'WAIT' ? { actionType, seconds: 3 } : { actionType };
 }
 
-export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactElement {
+const MESSAGE_ACTIONS = [
+  'SEND_TEXT',
+  'SEND_QUICK_REPLIES',
+  'SEND_IMAGE',
+  'SEND_AUDIO',
+  'SEND_VIDEO',
+];
+
+export function StepsEditor({
+  initial,
+  commentMode = false,
+}: {
+  initial: StepDraft[];
+  /** Comment automations may only send one message; warn while building. */
+  commentMode?: boolean;
+}): React.ReactElement {
   const [steps, setSteps] = useState<StepDraft[]>(
     initial.length > 0 ? initial : [{ actionType: 'SEND_TEXT', text: '' }],
   );
@@ -93,9 +108,20 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
     });
   }
 
+  const messageStepCount = steps.filter((s) => MESSAGE_ACTIONS.includes(s.actionType)).length;
+
   return (
     <div className="space-y-3">
       <input type="hidden" name="steps" value={JSON.stringify(steps)} />
+
+      {commentMode && messageStepCount > 1 ? (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900">
+          اینستاگرام برای هر کامنت فقط اجازهٔ <strong>یک پیام</strong> می‌دهد، پس تنها اولین گام
+          پیام‌دار ارسال می‌شود و بقیه نادیده گرفته می‌شوند. راه درست: در همان یک پیام یک{' '}
+          <strong>دکمه</strong> بگذارید؛ وقتی کاربر دکمه را زد، گفتگو باز می‌شود و می‌توانید هر
+          تعداد پیام بفرستید.
+        </p>
+      ) : null}
 
       {steps.map((step, i) => (
         <div key={i} className="rounded-lg border border-neutral-200 p-3">

@@ -132,7 +132,7 @@ export function AutomationWizard({
       ) : null}
 
       <Step n={5} title="تنظیم پاسخ">
-        <StepsEditor initial={[]} />
+        <StepsEditor initial={[]} commentMode={triggerType === 'COMMENT_KEYWORD'} />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="priority">اولویت</Label>
