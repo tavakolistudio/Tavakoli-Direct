@@ -318,6 +318,7 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
   const idx = input.step.order;
   switch (input.step.actionType) {
     case 'SEND_TEXT':
+    case 'SEND_QUICK_REPLIES':
       await createOutbound({
         accountId: input.account.id,
         conversationId: input.conversation.id,
@@ -330,9 +331,14 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
             ? {
                 commentId: input.event.commentId,
                 text: cfg.text,
+                quickReplies: cfg.buttons,
                 recipientScopedId: input.event.senderScopedId,
               }
-            : { recipientScopedId: input.event.senderScopedId, text: cfg.text },
+            : {
+                recipientScopedId: input.event.senderScopedId,
+                text: cfg.text,
+                quickReplies: cfg.buttons,
+              },
       });
       break;
     case 'SEND_IMAGE':

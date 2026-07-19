@@ -50,6 +50,7 @@ function parseLines(raw: string | undefined): string[] {
 const stepSchema = z.object({
   actionType: z.enum([
     'SEND_TEXT',
+    'SEND_QUICK_REPLIES',
     'SEND_IMAGE',
     'SEND_AUDIO',
     'SEND_VIDEO',
@@ -60,6 +61,7 @@ const stepSchema = z.object({
   mediaUrl: z.string().optional(),
   caption: z.string().optional(),
   seconds: z.coerce.number().int().min(1).max(60).optional(),
+  buttons: z.array(z.string()).optional(),
 });
 
 /**
@@ -85,10 +87,19 @@ function parseSteps(raw: string): { steps: StepRow[] } | { error: string } {
   const steps: StepRow[] = [];
   for (const [index, step] of result.data.entries()) {
     let config: Prisma.InputJsonValue = {};
-    if (step.actionType === 'SEND_TEXT') {
+    if (step.actionType === 'SEND_TEXT' || step.actionType === 'SEND_QUICK_REPLIES') {
       const text = (step.text ?? '').trim();
       if (!text) return { error: `متن گام ${index + 1} خالی است.` };
-      config = { text };
+      if (step.actionType === 'SEND_QUICK_REPLIES') {
+        const buttons = (step.buttons ?? [])
+          .map((b) => b.trim())
+          .filter(Boolean)
+          .slice(0, 13);
+        if (buttons.length === 0) return { error: `گام ${index + 1} هیچ دکمه‌ای ندارد.` };
+        config = { text, buttons };
+      } else {
+        config = { text };
+      }
     } else if (
       step.actionType === 'SEND_IMAGE' ||
       step.actionType === 'SEND_AUDIO' ||

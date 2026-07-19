@@ -119,6 +119,33 @@ const USE_CASES = [
   },
 ];
 
+const PLANS = [
+  {
+    name: 'اشتراک ماهانه',
+    price: '۲٬۳۳۶٬۰۰۰',
+    period: 'تومان / ماه',
+    featured: false,
+    features: [
+      'دسترسی به همهٔ امکانات پنل',
+      'پاسخ خودکار دایرکت و کامنت',
+      'ارسال متن، عکس، صدا و فیلم',
+      'پشتیبانی در ساعات کاری',
+    ],
+  },
+  {
+    name: 'اشتراک سالانه',
+    price: '۱۲٬۴۰۸٬۰۰۰',
+    period: 'تومان / سال',
+    featured: true,
+    features: [
+      'همهٔ امکانات اشتراک ماهانه',
+      'معادل حدود دو ماه رایگان',
+      'مشاورهٔ اختصاصی راه‌اندازی',
+      'اولویت در پشتیبانی',
+    ],
+  },
+];
+
 const STEPS = [
   {
     n: '۱',
@@ -264,6 +291,9 @@ export default function LandingPage(): React.ReactElement {
             </a>
             <a href="#services" className="hover:text-neutral-900">
               خدمات
+            </a>
+            <a href="#pricing" className="hover:text-neutral-900">
+              تعرفه‌ها
             </a>
             <a href="#usecases" className="hover:text-neutral-900">
               کاربردها
@@ -434,6 +464,51 @@ export default function LandingPage(): React.ReactElement {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="pricing" className="border-y border-neutral-200 bg-white">
+        <div className="mx-auto max-w-5xl px-4 py-16 md:px-8 md:py-24">
+          <SectionHeading
+            title="تعرفه‌ها"
+            subtitle="خدمات دایرکت هوشمند، ویژه اعضای باشگاه مشتریان توکلی استودیو."
+          />
+          <div className="mt-12 grid gap-6 md:grid-cols-2">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl border p-8 ${
+                  plan.featured
+                    ? 'border-brand bg-brand/5 shadow-sm'
+                    : 'border-neutral-200 bg-white'
+                }`}
+              >
+                {plan.featured ? (
+                  <span className="bg-brand mb-4 inline-block rounded-full px-3 py-1 text-xs font-medium text-white">
+                    به‌صرفه‌ترین
+                  </span>
+                ) : null}
+                <h3 className="font-semibold text-neutral-900">{plan.name}</h3>
+                <p className="mt-4">
+                  <span className="text-3xl font-bold text-neutral-900">{plan.price}</span>{' '}
+                  <span className="text-sm text-neutral-600">{plan.period}</span>
+                </p>
+                <ul className="mt-6 space-y-3 text-sm leading-7 text-neutral-700">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex gap-2">
+                      <span className="text-brand-dark">✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="mt-8 text-center text-sm leading-7 text-neutral-600">
+            راه‌اندازی، اتصال پیج و ساخت اولین اتوماسیون‌ها توسط تیم توکلی استودیو انجام می‌شود.
+            برای مشاوره و شروع، با ما تماس بگیرید.
+          </p>
+        </div>
+      </section>
+
       {/* Use cases */}
       <section id="usecases" className="border-y border-neutral-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
@@ -574,6 +649,11 @@ export default function LandingPage(): React.ReactElement {
               <li>
                 <a href="#services" className="hover:text-neutral-800">
                   خدمات
+                </a>
+              </li>
+              <li>
+                <a href="#pricing" className="hover:text-neutral-800">
+                  تعرفه‌ها
                 </a>
               </li>
               <li>
