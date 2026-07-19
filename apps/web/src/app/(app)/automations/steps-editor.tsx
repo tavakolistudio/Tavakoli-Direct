@@ -22,6 +22,7 @@ const STEP_LABELS: Record<string, string> = {
   SEND_TEXT: 'ارسال متن',
   SEND_IMAGE: 'ارسال عکس',
   SEND_AUDIO: 'ارسال صدا',
+  SEND_VIDEO: 'ارسال فیلم',
   WAIT: 'مکث',
   NEEDS_HUMAN: 'ارجاع به اپراتور',
 };
@@ -30,6 +31,7 @@ const STEP_HINTS: Record<string, string> = {
   SEND_TEXT: 'برای کامنت، این پیام به‌صورت دایرکت برای کامنت‌گذار می‌رود.',
   SEND_IMAGE: 'فایل jpg یا png را آپلود کنید، یا آدرس مستقیم یک عکس عمومی را بگذارید.',
   SEND_AUDIO: 'فایل m4a یا mp3، حداکثر ۸ مگابایت. پس از آپلود برای مخاطب ارسال می‌شود.',
+  SEND_VIDEO: 'فایل mp4، حداکثر ۲۵ مگابایت.',
   WAIT: 'کمی صبر می‌کند تا پیام‌ها پشت سر هم و طبیعی‌تر برسند.',
   NEEDS_HUMAN: 'گفتگو به کارتابل اپراتور می‌رود تا انسان جواب دهد.',
 };
@@ -165,11 +167,15 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
             </div>
           ) : null}
 
-          {step.actionType === 'SEND_AUDIO' ? (
+          {step.actionType === 'SEND_AUDIO' || step.actionType === 'SEND_VIDEO' ? (
             <div className="space-y-2">
               <input
                 type="file"
-                accept="audio/mp4,audio/m4a,audio/x-m4a,audio/mpeg,.m4a,.mp3"
+                accept={
+                  step.actionType === 'SEND_VIDEO'
+                    ? 'video/mp4,.mp4'
+                    : 'audio/mp4,audio/m4a,audio/x-m4a,audio/mpeg,.m4a,.mp3'
+                }
                 className="block w-full text-sm"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -182,7 +188,7 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
                 <p className="text-xs text-green-700">
                   فایل آپلود شد ✅{' '}
                   <a href={step.mediaUrl} target="_blank" rel="noreferrer" className="underline">
-                    گوش دادن
+                    {step.actionType === 'SEND_VIDEO' ? 'دیدن' : 'گوش دادن'}
                   </a>
                 </p>
               ) : (
