@@ -57,7 +57,11 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
   const res = await fetch(`${base}/storage/v1/object/${MEDIA_BUCKET}/${objectName}`, {
     method: 'POST',
     headers: {
+      // Legacy service_role keys are JWTs and go in Authorization; the newer
+      // sb_secret_* keys are not JWTs and are accepted via apikey. Sending both
+      // means either style of key works.
       Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY!}`,
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY!,
       'Content-Type': file.type,
       'x-upsert': 'false',
     },

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Label, Select } from '@tavakoli/ui';
+import { Button, Input, Label, Select } from '@tavakoli/ui';
 import { listAccountPostsAction, type AccountPost } from '@/server/actions/instagram-media';
 
 /**
@@ -86,7 +86,23 @@ export function PostPicker({
         </Button>
       ) : null}
 
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? (
+        <div className="space-y-2">
+          <p className="text-xs text-red-700">{error}</p>
+          <Label htmlFor="manual-media-id">شناسه پست را دستی وارد کنید (اختیاری)</Label>
+          <Input
+            id="manual-media-id"
+            dir="ltr"
+            value={mediaId}
+            onChange={(e) => setMediaId(e.target.value.trim())}
+            placeholder="مثلاً 17847025167617707"
+          />
+          <p className="text-xs text-neutral-500">
+            دریافت خودکار لیست پست‌ها ممکن است تا تأیید App Review در دسترس نباشد. خالی بگذارید تا
+            روی همهٔ پست‌ها کار کند.
+          </p>
+        </div>
+      ) : null}
       {loaded && posts.length === 0 && !error ? (
         <p className="text-xs text-neutral-500">پستی پیدا نشد.</p>
       ) : null}
