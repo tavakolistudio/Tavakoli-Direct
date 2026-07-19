@@ -48,7 +48,9 @@ export async function listAccountPostsAction(accountId: string): Promise<Account
   });
 
   const url = new URL(`https://graph.instagram.com/${env.META_GRAPH_API_VERSION}/me/media`);
-  url.searchParams.set('fields', 'id,caption,media_type,permalink,thumbnail_url,media_url');
+  // Keep to fields valid for every media type: thumbnail_url/media_url are not
+  // universally available and make the whole request fail.
+  url.searchParams.set('fields', 'id,caption,media_type,permalink');
   url.searchParams.set('limit', '25');
   url.searchParams.set('access_token', token);
 
@@ -60,13 +62,17 @@ export async function listAccountPostsAction(accountId: string): Promise<Account
         caption?: string;
         media_type?: string;
         permalink?: string;
-        thumbnail_url?: string;
-        media_url?: string;
       }>;
       error?: { message?: string };
     };
     if (!res.ok || !json.data) {
-      return { posts: [], error: json.error?.message ?? 'دریافت پست‌ها ناموفق بود.' };
+      console.error('instagram media fetch failed:', res.status, JSON.stringify(json.error ?? {}));
+      return {
+        posts: [],
+        error: json.error?.message
+          ? `دریافت پست‌ها ناموفق بود: ${json.error.message}`
+          : 'دریافت پست‌ها ناموفق بود.',
+      };
     }
     return {
       posts: json.data
@@ -75,7 +81,6 @@ export async function listAccountPostsAction(accountId: string): Promise<Account
           id: m.id,
           label: summarise(m.caption, m.media_type),
           permalink: m.permalink,
-          thumbnailUrl: m.thumbnail_url ?? m.media_url,
         })),
     };
   } catch (err) {
