@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button, Input, Label, Select, Textarea } from '@tavakoli/ui';
 
 /**
@@ -69,6 +69,50 @@ export function StepsEditor({
   );
   const [uploading, setUploading] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [recordingIndex, setRecordingIndex] = useState<number | null>(null);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Instagram only accepts m4a/mp3, so recording is offered solely where the
+  // browser can produce mp4 audio (Chrome/Safari); elsewhere upload still works.
+  const canRecord =
+    typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/mp4');
+
+  function stopRecording(): void {
+    recorderRef.current?.stop();
+  }
+
+  async function startRecording(index: number): Promise<void> {
+    setUploadError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
+      recorderRef.current = recorder;
+      const chunks: BlobPart[] = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = null;
+        setRecordingIndex(null);
+        const file = new File(chunks, 'recording.m4a', { type: 'audio/mp4' });
+        if (file.size > 0) void uploadFile(index, file);
+      };
+      recorder.start();
+      setRecordingIndex(index);
+      setRecordSeconds(0);
+      timerRef.current = setInterval(() => setRecordSeconds((v) => v + 1), 1000);
+    } catch {
+      setUploadError('دسترسی به میکروفون داده نشد.');
+    }
+  }
 
   async function uploadFile(index: number, file: File): Promise<void> {
     setUploadError(null);
@@ -238,6 +282,22 @@ export function StepsEditor({
                   if (file) void uploadFile(i, file);
                 }}
               />
+              {step.actionType === 'SEND_AUDIO' && canRecord ? (
+                <Button
+                  type="button"
+                  variant={recordingIndex === i ? 'danger' : 'ghost'}
+                  size="sm"
+                  disabled={uploading !== null || (recordingIndex !== null && recordingIndex !== i)}
+                  onClick={() => (recordingIndex === i ? stopRecording() : void startRecording(i))}
+                >
+                  {recordingIndex === i ? `⏹ پایان ضبط (${recordSeconds} ثانیه)` : '🎙 ضبط صدا'}
+                </Button>
+              ) : null}
+              {step.actionType === 'SEND_AUDIO' && !canRecord ? (
+                <p className="text-xs text-neutral-400">
+                  ضبط مستقیم در این مرورگر ممکن نیست؛ با موبایل ضبط کنید و فایل را آپلود کنید.
+                </p>
+              ) : null}
               {uploading === i ? (
                 <p className="text-xs text-neutral-500">در حال آپلود…</p>
               ) : step.mediaUrl ? (
