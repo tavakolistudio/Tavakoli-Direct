@@ -193,12 +193,17 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     });
   }
 
-  const orderedSteps = limitCommentSteps(
-    [...winnerRow.steps].sort((a, b) => a.order - b.order),
-    event.kind,
-  );
+  const orderedSteps = [...winnerRow.steps].sort((a, b) => a.order - b.order);
+  // Only the FIRST message of a comment scenario is a private reply addressed to
+  // the comment; Meta allows just one of those. Later messages are addressed to
+  // the user directly, which is how a multi-message comment flow can work.
+  let commentReplyUsed = false;
   let handoff = false;
   for (const step of orderedSteps) {
+    const isMessageStep = MESSAGE_ACTIONS.has(step.actionType);
+    const asPrivateReply = event.kind === 'COMMENT' && isMessageStep && !commentReplyUsed;
+    if (asPrivateReply) commentReplyUsed = true;
+
     await applyStep({
       step,
       account,
@@ -206,6 +211,7 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
       contact,
       event,
       executionId: execution.id,
+      asPrivateReply,
       onHandoff: () => {
         handoff = true;
       },
@@ -230,23 +236,6 @@ const MESSAGE_ACTIONS = new Set([
   'SEND_AUDIO',
   'SEND_VIDEO',
 ]);
-
-/**
- * Meta allows exactly ONE private reply per comment, and only lets the
- * conversation continue after the user answers it. Sending later message steps
- * would fail at the provider, so they are dropped here instead — non-message
- * steps (handoff, tagging) still run.
- */
-function limitCommentSteps<T extends { actionType: string }>(steps: T[], eventKind: string): T[] {
-  if (eventKind !== 'COMMENT') return steps;
-  let messageUsed = false;
-  return steps.filter((step) => {
-    if (!MESSAGE_ACTIONS.has(step.actionType)) return true;
-    if (messageUsed) return false;
-    messageUsed = true;
-    return true;
-  });
-}
 
 async function loadFireState(
   automationIds: string[],
@@ -337,6 +326,8 @@ interface ApplyStepInput {
   contact: { id: string };
   event: NormalizedInstagramEvent;
   executionId: string;
+  /** True for the one message that answers the comment itself. */
+  asPrivateReply: boolean;
   onHandoff: () => void;
 }
 
@@ -352,22 +343,21 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
         accountId: input.account.id,
         conversationId: input.conversation.id,
         contactId: input.contact.id,
-        kind: input.event.kind === 'COMMENT' ? 'privateReply' : 'sendText',
+        kind: input.asPrivateReply ? 'privateReply' : 'sendText',
         executionId: input.executionId,
         stepIndex: idx,
-        payload:
-          input.event.kind === 'COMMENT'
-            ? {
-                commentId: input.event.commentId,
-                text: cfg.text,
-                quickReplies: cfg.buttons,
-                recipientScopedId: input.event.senderScopedId,
-              }
-            : {
-                recipientScopedId: input.event.senderScopedId,
-                text: cfg.text,
-                quickReplies: cfg.buttons,
-              },
+        payload: input.asPrivateReply
+          ? {
+              commentId: input.event.commentId,
+              text: cfg.text,
+              quickReplies: cfg.buttons,
+              recipientScopedId: input.event.senderScopedId,
+            }
+          : {
+              recipientScopedId: input.event.senderScopedId,
+              text: cfg.text,
+              quickReplies: cfg.buttons,
+            },
       });
       break;
     case 'SEND_IMAGE':
