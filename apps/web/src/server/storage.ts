@@ -19,6 +19,8 @@ const ALLOWED: Record<string, { ext: string; maxBytes: number }> = {
   'audio/mpeg': { ext: 'mp3', maxBytes: 8 * 1024 * 1024 },
   'image/jpeg': { ext: 'jpg', maxBytes: 8 * 1024 * 1024 },
   'image/png': { ext: 'png', maxBytes: 8 * 1024 * 1024 },
+  // Video gets a bigger budget; Instagram accepts noticeably larger clips.
+  'video/mp4': { ext: 'mp4', maxBytes: 25 * 1024 * 1024 },
 };
 
 export function isStorageConfigured(): boolean {
@@ -37,14 +39,19 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
 
   const spec = ALLOWED[file.type];
   if (!spec) {
-    return { error: 'فقط فایل m4a، mp3، jpg یا png پذیرفته می‌شود.' };
+    return { error: 'فقط فایل m4a، mp3، jpg، png یا mp4 پذیرفته می‌شود.' };
   }
   if (file.size > spec.maxBytes) {
-    return { error: 'حجم فایل نباید بیشتر از ۸ مگابایت باشد.' };
+    const mb = Math.round(spec.maxBytes / (1024 * 1024));
+    return { error: `حجم فایل نباید بیشتر از ${mb} مگابایت باشد.` };
   }
 
   const base = env.SUPABASE_URL!.replace(/\/$/, '');
-  const folder = file.type.startsWith('audio/') ? 'audio' : 'image';
+  const folder = file.type.startsWith('audio/')
+    ? 'audio'
+    : file.type.startsWith('video/')
+      ? 'video'
+      : 'image';
   const objectName = `${folder}/${randomBytes(16).toString('hex')}.${spec.ext}`;
 
   const res = await fetch(`${base}/storage/v1/object/${MEDIA_BUCKET}/${objectName}`, {

@@ -48,7 +48,14 @@ function parseLines(raw: string | undefined): string[] {
 
 /** Action types the worker actually implements; anything else is rejected. */
 const stepSchema = z.object({
-  actionType: z.enum(['SEND_TEXT', 'SEND_IMAGE', 'SEND_AUDIO', 'WAIT', 'NEEDS_HUMAN']),
+  actionType: z.enum([
+    'SEND_TEXT',
+    'SEND_IMAGE',
+    'SEND_AUDIO',
+    'SEND_VIDEO',
+    'WAIT',
+    'NEEDS_HUMAN',
+  ]),
   text: z.string().optional(),
   mediaUrl: z.string().optional(),
   caption: z.string().optional(),
@@ -82,14 +89,18 @@ function parseSteps(raw: string): { steps: StepRow[] } | { error: string } {
       const text = (step.text ?? '').trim();
       if (!text) return { error: `متن گام ${index + 1} خالی است.` };
       config = { text };
-    } else if (step.actionType === 'SEND_IMAGE' || step.actionType === 'SEND_AUDIO') {
+    } else if (
+      step.actionType === 'SEND_IMAGE' ||
+      step.actionType === 'SEND_AUDIO' ||
+      step.actionType === 'SEND_VIDEO'
+    ) {
       const mediaUrl = (step.mediaUrl ?? '').trim();
       if (!/^https?:\/\//.test(mediaUrl)) {
         return {
           error:
-            step.actionType === 'SEND_AUDIO'
-              ? `برای گام ${index + 1} هنوز فایل صوتی آپلود نشده است.`
-              : `آدرس عکس گام ${index + 1} باید با http یا https شروع شود.`,
+            step.actionType === 'SEND_IMAGE'
+              ? `آدرس عکس گام ${index + 1} باید با http یا https شروع شود.`
+              : `برای گام ${index + 1} هنوز فایلی آپلود نشده است.`,
         };
       }
       config = { mediaUrl, caption: (step.caption ?? '').trim() || undefined };
