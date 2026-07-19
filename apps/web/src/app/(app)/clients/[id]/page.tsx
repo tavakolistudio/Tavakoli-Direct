@@ -30,7 +30,20 @@ export default async function ClientDetailPage({
 
   return (
     <div>
-      <PageHeader title={client.name} description={client.description ?? 'بدون توضیح'} />
+      <PageHeader
+        title={client.name}
+        description={client.description ?? 'بدون توضیح'}
+        action={
+          user.role === 'ADMIN' ? (
+            <Link
+              href={`/clients/${client.id}/edit`}
+              className="border-brand text-brand-dark hover:bg-brand/5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+            >
+              ویرایش
+            </Link>
+          ) : null
+        }
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>

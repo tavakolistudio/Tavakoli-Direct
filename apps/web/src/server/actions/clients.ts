@@ -80,3 +80,48 @@ export async function toggleClientActiveAction(clientId: string, isActive: boole
   });
   revalidatePath('/clients');
 }
+
+const updateSchema = clientSchema.extend({ clientId: z.string().min(1) });
+
+/**
+ * Edits a client's profile. The slug is left alone on purpose — it is a stable
+ * identifier, and renaming a business should not silently change its URLs.
+ */
+export async function updateClientAction(
+  _prev: ClientFormState,
+  formData: FormData,
+): Promise<ClientFormState> {
+  const admin = await requireAdmin();
+  const parsed = updateSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'اطلاعات نامعتبر است.' };
+  const d = parsed.data;
+
+  const existing = await prisma.client.findFirst({
+    where: { id: d.clientId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!existing) return { error: 'مجموعه یافت نشد.' };
+
+  await prisma.client.update({
+    where: { id: d.clientId },
+    data: {
+      name: d.name,
+      description: d.description?.trim() || null,
+      phone: d.phone?.trim() || null,
+      whatsapp: d.whatsapp?.trim() || null,
+      website: d.website?.trim() || null,
+      timeZone: d.timeZone,
+    },
+  });
+
+  await audit({
+    actorId: admin.id,
+    action: 'CLIENT_UPDATE',
+    entityType: 'Client',
+    entityId: d.clientId,
+  });
+
+  revalidatePath('/clients');
+  revalidatePath(`/clients/${d.clientId}`);
+  redirect(`/clients/${d.clientId}`);
+}

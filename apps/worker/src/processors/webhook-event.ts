@@ -12,7 +12,7 @@ import {
   type EvaluationContext,
   type NormalizedInstagramEvent,
 } from '@tavakoli/core';
-import { decryptSecret, prisma } from '@tavakoli/database';
+import { decryptSecret, prisma, type Prisma } from '@tavakoli/database';
 import { getProvider } from '@tavakoli/integrations';
 import { enqueueOutbound } from '../queues';
 import { toAutomationDef } from '../automation-map';
@@ -151,6 +151,53 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     return;
   }
 
+  // Resume: tapping the follow-gate button always arrives as a DM postback,
+  // even when the gated automation is a COMMENT_KEYWORD one — and a DM can
+  // never match a COMMENT_KEYWORD trigger through normal keyword evaluation
+  // (triggerMatchesEventKind requires kind === 'COMMENT' for that type). So a
+  // resume token bypasses matching entirely and re-enters the automation directly.
+  const resumeId = event.kind === 'DM' ? parseResumeToken(event.text) : null;
+  if (resumeId) {
+    const targetRow = account.automations.find((a) => a.id === resumeId && a.status === 'ACTIVE');
+    if (!targetRow) {
+      await markProcessed(webhookEvent.id, 'resume: automation no longer active');
+      return;
+    }
+    const follows = await checkFollows(account, event.senderScopedId);
+    if (follows === false) {
+      // Tapped before actually following — resend the same prompt rather than
+      // silently doing nothing, which is the exact bug this token replaces.
+      const prompt =
+        targetRow.trigger?.followPrompt?.trim() ||
+        'برای دریافت پاسخ، ابتدا صفحهٔ ما را فالو داشته باشید و بعد روی دکمهٔ زیر بزنید. 🙏';
+      await createOutbound({
+        accountId: account.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        kind: 'sendText',
+        executionId: null,
+        stepIndex: 0,
+        payload: {
+          recipientScopedId: event.senderScopedId,
+          text: prompt,
+          quickReplies: [{ title: 'فالو کردم ✅', payload: resumeToken(targetRow.id) }],
+        },
+      });
+      await markProcessed(webhookEvent.id, 'resume: still not following');
+      return;
+    }
+    await executeAutomation({
+      winnerRow: targetRow,
+      account,
+      conversation,
+      contact,
+      event,
+      matchedKeyword: targetRow.trigger?.keywords[0],
+    });
+    await markProcessed(webhookEvent.id, `executed ${targetRow.name} (resume)`);
+    return;
+  }
+
   // Build evaluation inputs.
   const storyReplyAvailable = account.capabilities.some(
     (c) => c.key === 'STORY_REPLY' && c.available,
@@ -207,10 +254,9 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
         'BLOCKED',
         result,
       );
-      const keyword = result.matchedKeyword ?? winnerRow.trigger.keywords[0] ?? '';
       const prompt =
         winnerRow.trigger.followPrompt?.trim() ||
-        'برای دریافت پاسخ، ابتدا صفحهٔ ما را دنبال کنید و بعد روی دکمهٔ زیر بزنید. 🙏';
+        'برای دریافت پاسخ، ابتدا صفحهٔ ما را فالو داشته باشید و بعد روی دکمهٔ زیر بزنید. 🙏';
       await createOutbound({
         accountId: account.id,
         conversationId: conversation.id,
@@ -222,7 +268,10 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
           recipientScopedId: event.senderScopedId,
           ...(event.kind === 'COMMENT' ? { commentId: event.commentId } : {}),
           text: prompt,
-          quickReplies: [{ title: 'فالو کردم ✅', payload: keyword }],
+          // Carries which automation to resume, NOT the trigger keyword — the tap
+          // always arrives as a DM, so a keyword payload could never re-match a
+          // COMMENT_KEYWORD trigger. See parseResumeToken.
+          quickReplies: [{ title: 'فالو کردم ✅', payload: resumeToken(winnerRow.id) }],
         },
       });
       await markProcessed(webhookEvent.id, 'follow gate: prompt sent');
@@ -231,13 +280,60 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
   }
 
   // Winner executes: record + apply actions + enqueue message sends.
-  const execution = await recordExecution(
-    winnerRow.id,
-    conversation.id,
-    contact.id,
-    'EXECUTED',
-    result,
-  );
+  await executeAutomation({
+    winnerRow,
+    account,
+    conversation,
+    contact,
+    event,
+    matchedKeyword: result.matchedKeyword,
+  });
+
+  await markProcessed(webhookEvent.id, `executed ${winnerRow.name}`);
+  log.info(`webhook-event processed: ${winnerRow.name} for contact ${contact.id}`);
+}
+
+/** Prefix marking a quick-reply payload as "resume this automation directly". */
+const RESUME_PREFIX = '__resume:';
+
+function resumeToken(automationId: string): string {
+  return `${RESUME_PREFIX}${automationId}`;
+}
+
+function parseResumeToken(text: string | undefined): string | null {
+  if (!text?.startsWith(RESUME_PREFIX)) return null;
+  return text.slice(RESUME_PREFIX.length) || null;
+}
+
+type AutomationWithStepsAndTrigger = Prisma.AutomationGetPayload<{
+  include: { trigger: true; steps: true };
+}>;
+
+interface ExecuteAutomationInput {
+  winnerRow: AutomationWithStepsAndTrigger;
+  account: { id: string };
+  conversation: { id: string };
+  contact: { id: string };
+  event: NormalizedInstagramEvent;
+  matchedKeyword?: string;
+}
+
+/**
+ * Runs one automation's steps: records the execution, sends the optional public
+ * comment reply, and applies each step in order. Shared by the normal
+ * evaluate()-selected path and the follow-gate resume path — the resume path
+ * has no EvaluationResult, so it passes matchedKeyword directly instead.
+ */
+async function executeAutomation(input: ExecuteAutomationInput): Promise<void> {
+  const { winnerRow, account, conversation, contact, event, matchedKeyword } = input;
+
+  const execution = await recordExecution(winnerRow.id, conversation.id, contact.id, 'EXECUTED', {
+    normalizedInput: event.text ?? '',
+    winner: null,
+    matchedKeyword,
+    traces: [],
+    blocked: false,
+  } as ReturnType<typeof evaluate>);
   await prisma.automation.update({
     where: { id: winnerRow.id },
     data: { executionCount: { increment: 1 }, lastExecutedAt: new Date() },
@@ -286,9 +382,6 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
   if (winnerRow.trigger?.type === 'NO_RULE_MATCHED' || handoff) {
     await markNeedsHuman(conversation.id, 'SCENARIO_COMPLETED');
   }
-
-  await markProcessed(webhookEvent.id, `executed ${winnerRow.name}`);
-  log.info(`webhook-event processed: ${winnerRow.name} for contact ${contact.id}`);
 }
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */

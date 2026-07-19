@@ -1,14 +1,15 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { LOGIN_RATE_LIMIT } from '@tavakoli/config';
+import { LOGIN_RATE_LIMIT, SESSION_COOKIE } from '@tavakoli/config';
 import { prisma } from '@tavakoli/database';
 import { audit } from '@/lib/audit';
-import { verifyPassword } from '@/lib/password';
+import { hashPassword, verifyPassword } from '@/lib/password';
 import { clearRateLimit, rateLimit } from '@/lib/rate-limit';
-import { createSession, destroySession } from '@/lib/session';
+import { createSession, destroySession, tokenHash as sessionTokenHash } from '@/lib/session';
+import { requireUser } from '@/lib/guards';
 
 const loginSchema = z.object({
   email: z.string().email('ایمیل معتبر وارد کنید.'),
@@ -65,4 +66,65 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
 export async function logoutAction(): Promise<void> {
   await destroySession();
   redirect('/login');
+}
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'رمز فعلی را وارد کنید.'),
+  newPassword: z.string().min(8, 'رمز جدید باید حداقل ۸ کاراکتر باشد.'),
+  confirmPassword: z.string(),
+});
+
+export interface ChangePasswordState {
+  error?: string;
+  ok?: boolean;
+}
+
+/**
+ * Changes the signed-in user's password. All OTHER sessions are revoked — a
+ * password change usually means "I suspect someone else has access", so leaving
+ * their sessions alive would defeat the point. The current session stays.
+ */
+export async function changePasswordAction(
+  _prev: ChangePasswordState,
+  formData: FormData,
+): Promise<ChangePasswordState> {
+  const user = await requireUser();
+  const parsed = changePasswordSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'اطلاعات نامعتبر است.' };
+  const d = parsed.data;
+
+  if (d.newPassword !== d.confirmPassword) {
+    return { error: 'تکرار رمز جدید یکسان نیست.' };
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { passwordHash: true },
+  });
+  if (!dbUser) return { error: 'کاربر یافت نشد.' };
+
+  const valid = await verifyPassword(dbUser.passwordHash, d.currentPassword);
+  if (!valid) return { error: 'رمز فعلی اشتباه است.' };
+
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value ?? '';
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await hashPassword(d.newPassword) },
+    }),
+    prisma.session.updateMany({
+      where: { userId: user.id, revokedAt: null, NOT: { tokenHash: sessionTokenHash(token) } },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
+
+  await audit({
+    actorId: user.id,
+    action: 'PASSWORD_CHANGE',
+    entityType: 'User',
+    entityId: user.id,
+  });
+  return { ok: true };
 }

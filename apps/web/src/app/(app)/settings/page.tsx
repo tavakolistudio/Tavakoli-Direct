@@ -3,6 +3,7 @@ import { Badge, Card, CardContent, CardHeader, CardTitle } from '@tavakoli/ui';
 import { APP_NAME, env } from '@tavakoli/config';
 import { PageHeader } from '@/components/page-header';
 import { requireUser } from '@/lib/guards';
+import { ChangePasswordForm } from './change-password-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,15 @@ export default async function SettingsPage(): Promise<React.ReactElement> {
             <div>محیط: {env.NODE_ENV}</div>
             <div>نسخه Graph API: {env.META_GRAPH_API_VERSION}</div>
             <div>نگه‌داری وبهوک: {env.WEBHOOK_PAYLOAD_RETENTION_DAYS} روز</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>تغییر رمز عبور</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChangePasswordForm />
           </CardContent>
         </Card>
 

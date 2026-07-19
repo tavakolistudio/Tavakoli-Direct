@@ -42,6 +42,9 @@ const STEP_HINTS: Record<string, string> = {
 };
 
 const NEWLINE = '\n';
+
+/** Emojis that actually get used in sales replies, not a full picker. */
+const EMOJIS = ['😊', '🙏', '👋', '✅', '📩', '🔥', '💰', '🎁', '📞', '⏰', '👇', '❤️'];
 const BUTTONS_PLACEHOLDER = ['تعرفه‌ها', 'سایت ما | https://example.com', 'مشاوره رایگان'].join(
   NEWLINE,
 );
@@ -156,6 +159,13 @@ export function StepsEditor({
 
   const messageStepCount = steps.filter((s) => MESSAGE_ACTIONS.includes(s.actionType)).length;
 
+  /** Appends an emoji to a step's text; cheaper than a full picker component. */
+  function addEmoji(index: number, emoji: string): void {
+    setSteps((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, text: `${s.text ?? ''}${emoji}` } : s)),
+    );
+  }
+
   return (
     <div className="space-y-3">
       <input type="hidden" name="steps" value={JSON.stringify(steps)} />
@@ -206,6 +216,19 @@ export function StepsEditor({
                 onChange={(e) => update(i, { text: e.target.value })}
                 placeholder="متن پیام…"
               />
+              <div className="flex flex-wrap gap-1">
+                {EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => addEmoji(i, emoji)}
+                    className="rounded border border-neutral-200 px-2 py-1 text-base leading-none hover:bg-neutral-50"
+                    aria-label={`افزودن ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
               <Label htmlFor={`buttons-${i}`}>دکمه‌ها (هر خط یک دکمه)</Label>
               <Textarea
                 id={`buttons-${i}`}
@@ -221,12 +244,27 @@ export function StepsEditor({
           ) : null}
 
           {step.actionType === 'SEND_TEXT' ? (
-            <Textarea
-              rows={3}
-              value={step.text ?? ''}
-              onChange={(e) => update(i, { text: e.target.value })}
-              placeholder="متن پیام…"
-            />
+            <div className="space-y-2">
+              <Textarea
+                rows={3}
+                value={step.text ?? ''}
+                onChange={(e) => update(i, { text: e.target.value })}
+                placeholder="متن پیام…"
+              />
+              <div className="flex flex-wrap gap-1">
+                {EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => addEmoji(i, emoji)}
+                    className="rounded border border-neutral-200 px-2 py-1 text-base leading-none hover:bg-neutral-50"
+                    aria-label={`افزودن ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
 
           {step.actionType === 'SEND_IMAGE' ? (
