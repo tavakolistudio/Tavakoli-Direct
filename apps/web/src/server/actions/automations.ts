@@ -77,7 +77,18 @@ type StepRow = {
   config: Prisma.InputJsonValue;
 };
 
-function parseSteps(raw: string): { steps: StepRow[] } | { error: string } {
+const MESSAGE_STEP_TYPES = new Set([
+  'SEND_TEXT',
+  'SEND_QUICK_REPLIES',
+  'SEND_IMAGE',
+  'SEND_AUDIO',
+  'SEND_VIDEO',
+]);
+
+function parseSteps(
+  raw: string,
+  isCommentTrigger: boolean,
+): { steps: StepRow[] } | { error: string } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -86,6 +97,28 @@ function parseSteps(raw: string): { steps: StepRow[] } | { error: string } {
   }
   const result = z.array(stepSchema).min(1).safeParse(parsed);
   if (!result.success) return { error: 'گام‌های پاسخ نامعتبر است.' };
+
+  // Meta allows exactly ONE message to a first-time commenter, and it must be
+  // text (private replies have no attachment support); anything else — a second
+  // message, or an image/audio/video as the opener — is silently rejected by
+  // Instagram at send time ("outside of allowed window"). Catching this at save
+  // time is far better than a page owner discovering it days later in reports.
+  if (isCommentTrigger) {
+    const messageSteps = result.data.filter((s) => MESSAGE_STEP_TYPES.has(s.actionType));
+    const first = messageSteps[0];
+    if (first && first.actionType !== 'SEND_TEXT' && first.actionType !== 'SEND_QUICK_REPLIES') {
+      return {
+        error:
+          'برای پاسخ به کامنت، اولین پیام باید «ارسال متن» یا «متن + دکمه» باشد — اینستاگرام عکس یا صدا را به‌عنوان اولین پیام به کسی که فقط کامنت گذاشته تحویل نمی‌دهد.',
+      };
+    }
+    if (messageSteps.length > 1) {
+      return {
+        error:
+          'برای هر کامنت فقط یک پیام مجاز است. برای ارسال عکس/صدا/چند پیام، گام اول را «متن + دکمه» بگذارید و عکس/صدا را در یک اتوماسیون دوم (محرک: کلمه در دایرکت، با همان عنوان دکمه) قرار دهید — با تپ‌زدن روی دکمه، گفتگو باز و پیام‌های بعدی قابل ارسال می‌شوند.',
+      };
+    }
+  }
 
   const steps: StepRow[] = [];
   for (const [index, step] of result.data.entries()) {
@@ -164,7 +197,7 @@ export async function createAutomationAction(
     return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
   }
 
-  const parsedSteps = parseSteps(d.steps);
+  const parsedSteps = parseSteps(d.steps, d.triggerType === 'COMMENT_KEYWORD');
   if ('error' in parsedSteps) return { error: parsedSteps.error };
 
   const automation = await prisma.automation.create({
@@ -236,7 +269,7 @@ export async function updateAutomationAction(
     return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
   }
 
-  const updateSteps = parseSteps(d.steps);
+  const updateSteps = parseSteps(d.steps, d.triggerType === 'COMMENT_KEYWORD');
   if ('error' in updateSteps) return { error: updateSteps.error };
 
   // Steps are replaced wholesale: rewriting the list is simpler and safer than
