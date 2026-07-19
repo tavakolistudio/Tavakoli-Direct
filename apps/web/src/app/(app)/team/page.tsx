@@ -16,11 +16,12 @@ import { formatRelativeFa } from '@/lib/dates';
 import { requireAdmin } from '@/lib/guards';
 import { prisma } from '@tavakoli/database';
 import { CreateOperatorForm } from './create-operator-form';
+import { MemberActions } from './member-actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeamPage(): Promise<React.ReactElement> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const users = await prisma.user.findMany({
     where: { deletedAt: null },
     orderBy: { createdAt: 'desc' },
@@ -48,6 +49,7 @@ export default async function TeamPage(): Promise<React.ReactElement> {
               <TH>نقش</TH>
               <TH>وضعیت</TH>
               <TH>آخرین ورود</TH>
+              <TH>عملیات</TH>
             </TR>
           </THead>
           <tbody>
@@ -70,6 +72,14 @@ export default async function TeamPage(): Promise<React.ReactElement> {
                   )}
                 </TD>
                 <TD>{formatRelativeFa(u.lastLoginAt)}</TD>
+                <TD>
+                  <MemberActions
+                    userId={u.id}
+                    name={u.name}
+                    isActive={u.isActive}
+                    isSelf={u.id === admin.id}
+                  />
+                </TD>
               </TR>
             ))}
           </tbody>

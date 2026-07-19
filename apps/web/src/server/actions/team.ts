@@ -62,3 +62,51 @@ export async function toggleUserActiveAction(userId: string, isActive: boolean):
   });
   revalidatePath('/team');
 }
+
+/**
+ * Soft-deletes a team member and kills their sessions.
+ *
+ * Two guards matter here: you cannot remove yourself, and you cannot remove the
+ * last active admin — either would leave the panel unusable with no way back in.
+ */
+export async function deleteUserAction(userId: string): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireAdmin();
+  if (userId === admin.id) return { ok: false, error: 'نمی‌توانید حساب خودتان را حذف کنید.' };
+
+  const target = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: { id: true, name: true, email: true, role: true },
+  });
+  if (!target) return { ok: false, error: 'کاربر یافت نشد.' };
+
+  if (target.role === 'ADMIN') {
+    const remainingAdmins = await prisma.user.count({
+      where: { role: 'ADMIN', isActive: true, deletedAt: null, id: { not: userId } },
+    });
+    if (remainingAdmins === 0) {
+      return { ok: false, error: 'آخرین مدیر سیستم را نمی‌توان حذف کرد.' };
+    }
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false, deletedAt: new Date() },
+    }),
+    // Revoke access immediately rather than waiting for the token to expire.
+    prisma.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
+
+  await audit({
+    actorId: admin.id,
+    action: 'OPERATOR_DELETE',
+    entityType: 'User',
+    entityId: userId,
+    metadata: { email: target.email, role: target.role },
+  });
+  revalidatePath('/team');
+  return { ok: true };
+}
