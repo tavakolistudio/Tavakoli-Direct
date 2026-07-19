@@ -34,7 +34,7 @@ export default async function AutomationEditPage({
       mediaUrl?: string;
       caption?: string;
       seconds?: number;
-      buttons?: string[];
+      buttons?: Array<string | { title?: string; url?: string }>;
     };
     return {
       actionType: s.actionType as string,
@@ -42,7 +42,9 @@ export default async function AutomationEditPage({
       mediaUrl: cfg.mediaUrl ?? '',
       caption: cfg.caption ?? '',
       seconds: cfg.seconds ?? 3,
-      buttons: cfg.buttons ?? [],
+      buttons: (cfg.buttons ?? []).map((b) =>
+        typeof b === 'string' ? b : b.url ? `${b.title ?? ''} | ${b.url}` : (b.title ?? ''),
+      ),
     };
   });
 

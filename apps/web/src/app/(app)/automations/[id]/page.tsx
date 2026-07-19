@@ -28,7 +28,7 @@ function describeStep(actionType: string, config: unknown): React.ReactNode {
     caption?: string;
     mediaUrl?: string;
     seconds?: number;
-    buttons?: string[];
+    buttons?: Array<string | { title?: string; url?: string }>;
   };
   switch (actionType) {
     case 'SEND_TEXT':
@@ -39,11 +39,16 @@ function describeStep(actionType: string, config: unknown): React.ReactNode {
           {cfg.text ?? '—'}
           {cfg.buttons?.length ? (
             <span className="mt-1 flex flex-wrap gap-1">
-              {cfg.buttons.map((b) => (
-                <span key={b} className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs">
-                  {b}
-                </span>
-              ))}
+              {cfg.buttons.map((b, i) => {
+                const title = typeof b === 'string' ? b : (b.title ?? '');
+                const url = typeof b === 'string' ? undefined : b.url;
+                return (
+                  <span key={i} className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs">
+                    {title}
+                    {url ? ' 🔗' : ''}
+                  </span>
+                );
+              })}
             </span>
           ) : null}
         </>

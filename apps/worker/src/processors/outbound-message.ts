@@ -6,7 +6,12 @@
  */
 import { mapProviderError } from '@tavakoli/core';
 import { decryptSecret, prisma, type MessageType } from '@tavakoli/database';
-import { getProvider, type QuickReply, type SendResult } from '@tavakoli/integrations';
+import {
+  getProvider,
+  type QuickReply,
+  type SendResult,
+  type TemplateButton,
+} from '@tavakoli/integrations';
 import { log } from '../log';
 
 interface JobData {
@@ -90,6 +95,7 @@ async function send(
         recipientScopedId: payload.recipientScopedId!,
         text: payload.text!,
         quickReplies: payload.quickReplies as unknown as QuickReply[] | undefined,
+        buttons: payload.buttons as unknown as TemplateButton[] | undefined,
         accessToken,
       });
     case 'sendMedia':
@@ -107,6 +113,7 @@ async function send(
         commentId: payload.commentId!,
         text: payload.text!,
         quickReplies: payload.quickReplies as unknown as QuickReply[] | undefined,
+        buttons: payload.buttons as unknown as TemplateButton[] | undefined,
         accessToken,
       });
     case 'publicCommentReply':

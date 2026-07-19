@@ -29,12 +29,24 @@ export interface WebhookVerifyInput {
 /** A tappable reply button. Payload defaults to the title when omitted. */
 export type QuickReply = string | { title: string; payload: string };
 
+/**
+ * A button-template button: either opens a URL or posts back a keyword that
+ * re-enters the automation engine as if the user had typed it.
+ */
+export interface TemplateButton {
+  title: string;
+  url?: string;
+  payload?: string;
+}
+
 export interface SendTextInput {
   providerAccountId: string;
   recipientScopedId: string;
   text: string;
   /** Tappable reply buttons shown under the message. Max 13, 20 chars each. */
   quickReplies?: QuickReply[];
+  /** Button-template buttons (max 3). When set, the message is sent as a template. */
+  buttons?: TemplateButton[];
   /** Access token (decrypted just-in-time by the caller; never logged). */
   accessToken?: string;
 }
@@ -51,6 +63,7 @@ export interface PrivateReplyInput {
   commentId: string;
   text: string;
   quickReplies?: QuickReply[];
+  buttons?: TemplateButton[];
   accessToken?: string;
 }
 

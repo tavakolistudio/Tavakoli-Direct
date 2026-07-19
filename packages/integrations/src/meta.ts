@@ -13,6 +13,7 @@ import type {
   CommentReplyInput,
   FollowCheckInput,
   QuickReply,
+  TemplateButton,
   InstagramMessagingProvider,
   PrivateReplyInput,
   ProviderCapabilities,
@@ -89,6 +90,40 @@ function quickReplyPayload(replies: QuickReply[] | undefined): Record<string, un
   };
 }
 
+/**
+ * Builds the message body: a button template when buttons are present (Meta
+ * caps these at 3), otherwise plain text with optional quick replies.
+ */
+function messageBody(
+  text: string,
+  quickReplies: QuickReply[] | undefined,
+  buttons: TemplateButton[] | undefined,
+): Record<string, unknown> {
+  const templateButtons = (buttons ?? [])
+    // Older automations stored plain strings; treat those as postback titles.
+    .map((b) => (typeof b === 'string' ? { title: b as string } : b))
+    .filter((b) => b.title.trim())
+    .slice(0, 3)
+    .map((b) =>
+      b.url
+        ? { type: 'web_url', url: b.url, title: b.title.slice(0, 20) }
+        : {
+            type: 'postback',
+            title: b.title.slice(0, 20),
+            payload: (b.payload || b.title).slice(0, 1000),
+          },
+    );
+  if (templateButtons.length > 0) {
+    return {
+      attachment: {
+        type: 'template',
+        payload: { template_type: 'button', text: text.slice(0, 640), buttons: templateButtons },
+      },
+    };
+  }
+  return { text, ...quickReplyPayload(quickReplies) };
+}
+
 function requireToken(token: string | undefined): string {
   if (!token) throw new Error('Meta provider requires a decrypted access token');
   return token;
@@ -135,6 +170,7 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
             quick_reply?: { payload?: string };
           };
           delivery?: { mids?: string[] };
+          postback?: { title?: string; payload?: string };
           read?: unknown;
         }>;
         changes?: Array<{
@@ -161,6 +197,19 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
             providerAccountId: accountId,
             senderScopedId: m.recipient?.id ?? '',
             providerMessageId: m.delivery.mids?.[0],
+            raw: m,
+          });
+          continue;
+        }
+        if (m.postback?.payload || m.postback?.title) {
+          // A template-button tap arrives as a postback; route its payload back
+          // through the engine as if the user had typed it.
+          events.push({
+            kind: 'DM',
+            providerAccountId: accountId,
+            senderScopedId: m.sender?.id ?? '',
+            text: m.postback.payload ?? m.postback.title,
+            providerTimestamp: m.timestamp ? new Date(m.timestamp).toISOString() : undefined,
             raw: m,
           });
           continue;
@@ -203,7 +252,7 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
       `${input.providerAccountId}/messages`,
       {
         recipient: { id: input.recipientScopedId },
-        message: { text: input.text, ...quickReplyPayload(input.quickReplies) },
+        message: messageBody(input.text, input.quickReplies, input.buttons),
       },
       requireToken(input.accessToken),
     );
@@ -232,7 +281,7 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
       `${input.providerAccountId}/messages`,
       {
         recipient: { comment_id: input.commentId },
-        message: { text: input.text, ...quickReplyPayload(input.quickReplies) },
+        message: messageBody(input.text, input.quickReplies, input.buttons),
       },
       requireToken(input.accessToken),
     );

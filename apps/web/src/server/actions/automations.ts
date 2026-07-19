@@ -94,10 +94,17 @@ function parseSteps(raw: string): { steps: StepRow[] } | { error: string } {
       const text = (step.text ?? '').trim();
       if (!text) return { error: `متن گام ${index + 1} خالی است.` };
       if (step.actionType === 'SEND_QUICK_REPLIES') {
-        const buttons = (step.buttons ?? [])
-          .map((b) => b.trim())
-          .filter(Boolean)
-          .slice(0, 13);
+        // Each line is "title" (posts that keyword back) or "title | url" (opens the link).
+        const buttons: Array<{ title: string; url?: string }> = [];
+        for (const line of step.buttons ?? []) {
+          const [title, url] = line.split('|').map((part) => part.trim());
+          if (!title) continue;
+          if (url && !/^https?:\/\//.test(url)) {
+            return { error: `لینک دکمهٔ «${title}» باید با http شروع شود.` };
+          }
+          buttons.push(url ? { title, url } : { title });
+          if (buttons.length === 3) break;
+        }
         if (buttons.length === 0) return { error: `گام ${index + 1} هیچ دکمه‌ای ندارد.` };
         config = { text, buttons };
       } else {

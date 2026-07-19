@@ -36,13 +36,15 @@ const STEP_HINTS: Record<string, string> = {
   SEND_AUDIO: 'فایل m4a یا mp3، حداکثر ۸ مگابایت. پس از آپلود برای مخاطب ارسال می‌شود.',
   SEND_VIDEO: 'فایل mp4، حداکثر ۲۵ مگابایت.',
   SEND_QUICK_REPLIES:
-    'متن به‌همراه دکمه‌های قابل لمس. کاربر با زدن دکمه، همان متن را برایتان می‌فرستد — پس می‌توانید روی همان کلمه یک اتوماسیون دیگر بسازید.',
+    'متن به‌همراه حداکثر ۳ دکمه. دکمهٔ ساده همان کلمه را برمی‌گرداند (می‌توانید روی آن اتوماسیون دیگری بسازید)؛ دکمهٔ لینک‌دار صفحهٔ وب را باز می‌کند.',
   WAIT: 'کمی صبر می‌کند تا پیام‌ها پشت سر هم و طبیعی‌تر برسند.',
   NEEDS_HUMAN: 'گفتگو به کارتابل اپراتور می‌رود تا انسان جواب دهد.',
 };
 
 const NEWLINE = '\n';
-const BUTTONS_PLACEHOLDER = ['تعرفه‌ها', 'نمونه کارها', 'مشاوره رایگان'].join(NEWLINE);
+const BUTTONS_PLACEHOLDER = ['تعرفه‌ها', 'سایت ما | https://example.com', 'مشاوره رایگان'].join(
+  NEWLINE,
+);
 
 function emptyStep(actionType: string): StepDraft {
   return actionType === 'WAIT' ? { actionType, seconds: 3 } : { actionType };
@@ -169,7 +171,7 @@ export function StepsEditor({
 
       {steps.map((step, i) => (
         <div key={i} className="rounded-lg border border-neutral-200 p-3">
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-neutral-500">گام {i + 1}</span>
             <Select
               value={step.actionType}
@@ -213,7 +215,7 @@ export function StepsEditor({
                 placeholder={BUTTONS_PLACEHOLDER}
               />
               <p className="text-xs text-neutral-500">
-                حداکثر ۱۳ دکمه، هرکدام تا ۲۰ کاراکتر. متن بلندتر کوتاه می‌شود.
+                هر خط یک دکمه (حداکثر ۳). برای دکمهٔ لینک‌دار بنویسید: «عنوان | آدرس لینک».
               </p>
             </div>
           ) : null}

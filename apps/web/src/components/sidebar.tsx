@@ -33,6 +33,15 @@ export function Sidebar({ role, userName }: SidebarProps): React.ReactElement {
         <span className="w-9" />
       </div>
 
+      {open ? (
+        <button
+          type="button"
+          aria-label="بستن منو"
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+        />
+      ) : null}
+
       <aside
         className={cn(
           'fixed inset-y-0 right-0 z-40 w-64 transform border-l border-neutral-200 bg-white transition-transform md:static md:translate-x-0',
