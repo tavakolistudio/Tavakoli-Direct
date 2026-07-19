@@ -99,10 +99,11 @@ function parseSteps(
   if (!result.success) return { error: 'گام‌های پاسخ نامعتبر است.' };
 
   // Meta allows exactly ONE message to a first-time commenter, and it must be
-  // text (private replies have no attachment support); anything else — a second
-  // message, or an image/audio/video as the opener — is silently rejected by
-  // Instagram at send time ("outside of allowed window"). Catching this at save
-  // time is far better than a page owner discovering it days later in reports.
+  // text (private replies have no attachment support) — an image/audio/video as
+  // the opener is silently rejected at send time ("outside of allowed window").
+  // Extra message steps are allowed, but they can only be DELIVERED after the
+  // recipient responds, so the worker defers them behind the first step's
+  // button and sends them once the tap arrives (see findCommentSplit).
   if (isCommentTrigger) {
     const messageSteps = result.data.filter((s) => MESSAGE_STEP_TYPES.has(s.actionType));
     const first = messageSteps[0];
@@ -113,10 +114,19 @@ function parseSteps(
       };
     }
     if (messageSteps.length > 1) {
-      return {
-        error:
-          'برای هر کامنت فقط یک پیام مجاز است. برای ارسال عکس/صدا/چند پیام، گام اول را «متن + دکمه» بگذارید و عکس/صدا را در یک اتوماسیون دوم (محرک: کلمه در دایرکت، با همان عنوان دکمه) قرار دهید — با تپ‌زدن روی دکمه، گفتگو باز و پیام‌های بعدی قابل ارسال می‌شوند.',
-      };
+      if (first!.actionType !== 'SEND_QUICK_REPLIES') {
+        return {
+          error:
+            'چون گام‌های دیگری هم بعد از اولین پیام هست، گام اول باید «متن + دکمه» باشد — کاربر با زدن دکمه، بقیهٔ پیام‌ها (عکس/صدا/متن) را دریافت می‌کند.',
+        };
+      }
+      const hasContinueButton = (first!.buttons ?? []).some((line) => !line.includes('|'));
+      if (!hasContinueButton) {
+        return {
+          error:
+            'برای رساندن پیام‌های بعدی، گام اول باید حداقل یک دکمهٔ ساده (بدون لینک) داشته باشد — همان دکمه‌ای که با زدنش بقیهٔ پیام‌ها ارسال می‌شود.',
+        };
+      }
     }
   }
 

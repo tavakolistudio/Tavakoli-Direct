@@ -156,14 +156,22 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
   // never match a COMMENT_KEYWORD trigger through normal keyword evaluation
   // (triggerMatchesEventKind requires kind === 'COMMENT' for that type). So a
   // resume token bypasses matching entirely and re-enters the automation directly.
-  const resumeId = event.kind === 'DM' ? parseResumeToken(event.text) : null;
-  if (resumeId) {
-    const targetRow = account.automations.find((a) => a.id === resumeId && a.status === 'ACTIVE');
+  const resume = event.kind === 'DM' ? parseResumeToken(event.text) : null;
+  if (resume) {
+    const targetRow = account.automations.find(
+      (a) => a.id === resume.automationId && a.status === 'ACTIVE',
+    );
     if (!targetRow) {
       await markProcessed(webhookEvent.id, 'resume: automation no longer active');
       return;
     }
-    const follows = await checkFollows(account, event.senderScopedId);
+    // Only follow-gated automations care about follow status; a plain scenario
+    // continuation (requireFollow=false) must never be blocked by it — checking
+    // unconditionally here would silently swallow every button tap from a
+    // non-follower, on automations that never asked for a follow at all.
+    const follows = targetRow.trigger?.requireFollow
+      ? await checkFollows(account, event.senderScopedId)
+      : true;
     if (follows === false) {
       // Tapped before actually following — resend the same prompt rather than
       // silently doing nothing, which is the exact bug this token replaces.
@@ -180,7 +188,9 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
         payload: {
           recipientScopedId: event.senderScopedId,
           text: prompt,
-          quickReplies: [{ title: 'فالو کردم ✅', payload: resumeToken(targetRow.id) }],
+          buttons: [
+            { title: 'فالو کردم ✅', payload: resumeToken(targetRow.id, resume.fromOrder) },
+          ],
         },
       });
       await markProcessed(webhookEvent.id, 'resume: still not following');
@@ -193,8 +203,12 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
       contact,
       event,
       matchedKeyword: targetRow.trigger?.keywords[0],
+      fromOrder: resume.fromOrder,
     });
-    await markProcessed(webhookEvent.id, `executed ${targetRow.name} (resume)`);
+    await markProcessed(
+      webhookEvent.id,
+      `executed ${targetRow.name} (resume from step ${resume.fromOrder})`,
+    );
     return;
   }
 
@@ -271,7 +285,7 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
           // Carries which automation to resume, NOT the trigger keyword — the tap
           // always arrives as a DM, so a keyword payload could never re-match a
           // COMMENT_KEYWORD trigger. See parseResumeToken.
-          quickReplies: [{ title: 'فالو کردم ✅', payload: resumeToken(winnerRow.id) }],
+          buttons: [{ title: 'فالو کردم ✅', payload: resumeToken(winnerRow.id) }],
         },
       });
       await markProcessed(webhookEvent.id, 'follow gate: prompt sent');
@@ -293,16 +307,48 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
   log.info(`webhook-event processed: ${winnerRow.name} for contact ${contact.id}`);
 }
 
-/** Prefix marking a quick-reply payload as "resume this automation directly". */
+/**
+ * Prefix marking a button payload as "resume this automation directly", i.e.
+ * bypass keyword/trigger-kind matching entirely and re-enter execution. Used
+ * both for the follow-gate (fromOrder 0 — nothing sent yet) and for continuing
+ * a comment scenario past Meta's one-private-reply limit (fromOrder > 0 — the
+ * opening message already went out; only the remaining steps run).
+ */
 const RESUME_PREFIX = '__resume:';
 
-function resumeToken(automationId: string): string {
-  return `${RESUME_PREFIX}${automationId}`;
+function resumeToken(automationId: string, fromOrder = 0): string {
+  return `${RESUME_PREFIX}${automationId}:${fromOrder}`;
 }
 
-function parseResumeToken(text: string | undefined): string | null {
+function parseResumeToken(
+  text: string | undefined,
+): { automationId: string; fromOrder: number } | null {
   if (!text?.startsWith(RESUME_PREFIX)) return null;
-  return text.slice(RESUME_PREFIX.length) || null;
+  const [automationId, orderStr] = text.slice(RESUME_PREFIX.length).split(':');
+  if (!automationId) return null;
+  const fromOrder = Number(orderStr);
+  return { automationId, fromOrder: Number.isFinite(fromOrder) ? fromOrder : 0 };
+}
+
+/**
+ * A COMMENT-triggered automation can deliver only its first message step
+ * (Meta's private-reply limit); everything after that must wait for the
+ * recipient to respond. Finds where the deliverable prefix ends.
+ */
+function findCommentSplit(steps: Array<{ order: number; actionType: string }>): {
+  cutoffOrder: number;
+  deferredFromOrder: number | null;
+} {
+  const sorted = [...steps].sort((a, b) => a.order - b.order);
+  const firstMessage = sorted.find((s) => MESSAGE_ACTIONS.has(s.actionType));
+  if (!firstMessage) return { cutoffOrder: Infinity, deferredFromOrder: null };
+  const hasMoreAfter = sorted.some(
+    (s) => s.order > firstMessage.order && MESSAGE_ACTIONS.has(s.actionType),
+  );
+  return {
+    cutoffOrder: firstMessage.order,
+    deferredFromOrder: hasMoreAfter ? firstMessage.order + 1 : null,
+  };
 }
 
 type AutomationWithStepsAndTrigger = Prisma.AutomationGetPayload<{
@@ -316,16 +362,26 @@ interface ExecuteAutomationInput {
   contact: { id: string };
   event: NormalizedInstagramEvent;
   matchedKeyword?: string;
+  /** Skip steps before this order — resuming a deferred comment scenario. */
+  fromOrder?: number;
 }
 
 /**
  * Runs one automation's steps: records the execution, sends the optional public
  * comment reply, and applies each step in order. Shared by the normal
- * evaluate()-selected path and the follow-gate resume path — the resume path
- * has no EvaluationResult, so it passes matchedKeyword directly instead.
+ * evaluate()-selected path and both resume flows (follow-gate and deferred
+ * comment continuation) — resume calls have no EvaluationResult, so they pass
+ * matchedKeyword directly instead.
+ *
+ * For a fresh COMMENT match, Meta allows delivering only ONE message (private
+ * replies are one-shot and text-only). If the automation has more than one
+ * message step, only the first runs now; a continuation button is injected
+ * into it automatically, and the rest run later via the resume path — the
+ * admin builds one automation, not two.
  */
 async function executeAutomation(input: ExecuteAutomationInput): Promise<void> {
-  const { winnerRow, account, conversation, contact, event, matchedKeyword } = input;
+  const { winnerRow, account, conversation, contact, event, matchedKeyword, fromOrder = 0 } = input;
+  const isFreshRun = fromOrder === 0;
 
   const execution = await recordExecution(winnerRow.id, conversation.id, contact.id, 'EXECUTED', {
     normalizedInput: event.text ?? '',
@@ -334,27 +390,42 @@ async function executeAutomation(input: ExecuteAutomationInput): Promise<void> {
     traces: [],
     blocked: false,
   } as ReturnType<typeof evaluate>);
-  await prisma.automation.update({
-    where: { id: winnerRow.id },
-    data: { executionCount: { increment: 1 }, lastExecutedAt: new Date() },
-  });
 
-  // Optional public comment reply. When several variants are configured one is
-  // picked at random, so a page answering many comments does not look robotic.
-  const publicReplyText = pickPublicReply(winnerRow.trigger);
-  if (event.kind === 'COMMENT' && publicReplyText && event.commentId) {
-    await createOutbound({
-      accountId: account.id,
-      conversationId: conversation.id,
-      contactId: contact.id,
-      kind: 'publicCommentReply',
-      executionId: execution.id,
-      stepIndex: -1,
-      payload: { commentId: event.commentId, text: publicReplyText },
+  if (isFreshRun) {
+    await prisma.automation.update({
+      where: { id: winnerRow.id },
+      data: { executionCount: { increment: 1 }, lastExecutedAt: new Date() },
     });
+
+    // Optional public comment reply. When several variants are configured one is
+    // picked at random, so a page answering many comments does not look robotic.
+    const publicReplyText = pickPublicReply(winnerRow.trigger);
+    if (event.kind === 'COMMENT' && publicReplyText && event.commentId) {
+      await createOutbound({
+        accountId: account.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        kind: 'publicCommentReply',
+        executionId: execution.id,
+        stepIndex: -1,
+        payload: { commentId: event.commentId, text: publicReplyText },
+      });
+    }
   }
 
-  const orderedSteps = [...winnerRow.steps].sort((a, b) => a.order - b.order);
+  let orderedSteps = [...winnerRow.steps]
+    .sort((a, b) => a.order - b.order)
+    .filter((s) => s.order >= fromOrder);
+
+  let deferredFromOrder: number | null = null;
+  let cutoffOrder = Infinity;
+  if (isFreshRun && event.kind === 'COMMENT') {
+    const split = findCommentSplit(winnerRow.steps);
+    deferredFromOrder = split.deferredFromOrder;
+    cutoffOrder = split.cutoffOrder;
+    orderedSteps = orderedSteps.filter((s) => s.order <= cutoffOrder);
+  }
+
   // Only the FIRST message of a comment scenario is a private reply addressed to
   // the comment; Meta allows just one of those. Later messages are addressed to
   // the user directly, which is how a multi-message comment flow can work.
@@ -373,13 +444,20 @@ async function executeAutomation(input: ExecuteAutomationInput): Promise<void> {
       event,
       executionId: execution.id,
       asPrivateReply,
+      // Only the cutoff step (the one being deferred FROM) gets the injected
+      // continuation button; every other step is untouched.
+      resumeToken:
+        deferredFromOrder !== null && step.order === cutoffOrder
+          ? resumeToken(winnerRow.id, deferredFromOrder)
+          : undefined,
       onHandoff: () => {
         handoff = true;
       },
     });
   }
 
-  if (winnerRow.trigger?.type === 'NO_RULE_MATCHED' || handoff) {
+  // Steps remain (deferred) → the scenario is not over yet; wait for the tap.
+  if (deferredFromOrder === null && (winnerRow.trigger?.type === 'NO_RULE_MATCHED' || handoff)) {
     await markNeedsHuman(conversation.id, 'SCENARIO_COMPLETED');
   }
 }
@@ -507,7 +585,28 @@ interface ApplyStepInput {
   executionId: string;
   /** True for the one message that answers the comment itself. */
   asPrivateReply: boolean;
+  /** When set, overrides the payload of every button without its own url. */
+  resumeToken?: string;
   onHandoff: () => void;
+}
+
+/** A configured button, as stored in a SEND_QUICK_REPLIES step's config. */
+interface ConfiguredButton {
+  title: string;
+  url?: string;
+  payload?: string;
+}
+
+function resolveButtons(
+  buttons: unknown,
+  resumeTokenValue: string | undefined,
+): ConfiguredButton[] | undefined {
+  if (!Array.isArray(buttons) || buttons.length === 0) return undefined;
+  return (buttons as ConfiguredButton[]).map((b) =>
+    // A url button always opens its link; only "continue" buttons (no url)
+    // get wired to resume the deferred rest of the scenario.
+    !b.url && resumeTokenValue ? { ...b, payload: resumeTokenValue } : b,
+  );
 }
 
 async function applyStep(input: ApplyStepInput): Promise<void> {
@@ -517,7 +616,8 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
   const idx = input.step.order;
   switch (input.step.actionType) {
     case 'SEND_TEXT':
-    case 'SEND_QUICK_REPLIES':
+    case 'SEND_QUICK_REPLIES': {
+      const buttons = resolveButtons(cfg.buttons, input.resumeToken);
       await createOutbound({
         accountId: input.account.id,
         conversationId: input.conversation.id,
@@ -529,16 +629,17 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
           ? {
               commentId: input.event.commentId,
               text: cfg.text,
-              quickReplies: cfg.buttons,
+              buttons,
               recipientScopedId: input.event.senderScopedId,
             }
           : {
               recipientScopedId: input.event.senderScopedId,
               text: cfg.text,
-              quickReplies: cfg.buttons,
+              buttons,
             },
       });
       break;
+    }
     case 'SEND_IMAGE':
     case 'SEND_AUDIO':
     case 'SEND_VIDEO':
