@@ -11,12 +11,23 @@ import { env } from '@tavakoli/config';
  */
 export const MEDIA_BUCKET = 'media';
 
-/** Formats Instagram accepts, mapped to the extension we store them under. */
+/**
+ * Formats Instagram accepts, mapped to the extension we store them under.
+ *
+ * Audio is the narrow one: Meta's send-message API documents exactly
+ * aac, m4a, wav and mp4 for the "audio" attachment type — mp3 is NOT on that
+ * list. An mp3 upload used to succeed here and then fail silently at send time
+ * ("This attachment format is not supported"), which is why mp3 is rejected at
+ * upload instead of accepted and only found broken later.
+ */
 const ALLOWED: Record<string, { ext: string; maxBytes: number }> = {
   'audio/mp4': { ext: 'm4a', maxBytes: 8 * 1024 * 1024 },
   'audio/m4a': { ext: 'm4a', maxBytes: 8 * 1024 * 1024 },
   'audio/x-m4a': { ext: 'm4a', maxBytes: 8 * 1024 * 1024 },
-  'audio/mpeg': { ext: 'mp3', maxBytes: 8 * 1024 * 1024 },
+  'audio/aac': { ext: 'aac', maxBytes: 8 * 1024 * 1024 },
+  'audio/wav': { ext: 'wav', maxBytes: 8 * 1024 * 1024 },
+  'audio/x-wav': { ext: 'wav', maxBytes: 8 * 1024 * 1024 },
+  'audio/wave': { ext: 'wav', maxBytes: 8 * 1024 * 1024 },
   'image/jpeg': { ext: 'jpg', maxBytes: 8 * 1024 * 1024 },
   'image/png': { ext: 'png', maxBytes: 8 * 1024 * 1024 },
   // Video gets a bigger budget; Instagram accepts noticeably larger clips.
@@ -39,7 +50,12 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
 
   const spec = ALLOWED[file.type];
   if (!spec) {
-    return { error: 'فقط فایل m4a، mp3، jpg، png یا mp4 پذیرفته می‌شود.' };
+    return {
+      error:
+        file.type === 'audio/mpeg'
+          ? 'فایل mp3 پذیرفته نمی‌شود — اینستاگرام آن را نمایش نمی‌دهد. از m4a، aac یا wav استفاده کنید (دکمهٔ ضبط صدا هم m4a می‌سازد).'
+          : 'فقط فایل m4a، aac، wav، jpg، png یا mp4 پذیرفته می‌شود.',
+    };
   }
   if (file.size > spec.maxBytes) {
     const mb = Math.round(spec.maxBytes / (1024 * 1024));
