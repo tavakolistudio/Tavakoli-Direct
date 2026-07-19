@@ -11,6 +11,75 @@ import { StatusControls } from './status-controls';
 
 export const dynamic = 'force-dynamic';
 
+const STEP_TYPE_LABELS: Record<string, string> = {
+  SEND_TEXT: 'ارسال متن',
+  SEND_QUICK_REPLIES: 'متن + دکمه',
+  SEND_IMAGE: 'ارسال عکس',
+  SEND_AUDIO: 'ارسال صدا',
+  SEND_VIDEO: 'ارسال فیلم',
+  WAIT: 'مکث',
+  NEEDS_HUMAN: 'ارجاع به اپراتور',
+};
+
+/** Human-readable one-liner for a step; raw config is never shown to users. */
+function describeStep(actionType: string, config: unknown): React.ReactNode {
+  const cfg = (config ?? {}) as {
+    text?: string;
+    caption?: string;
+    mediaUrl?: string;
+    seconds?: number;
+    buttons?: string[];
+  };
+  switch (actionType) {
+    case 'SEND_TEXT':
+      return cfg.text ?? '—';
+    case 'SEND_QUICK_REPLIES':
+      return (
+        <>
+          {cfg.text ?? '—'}
+          {cfg.buttons?.length ? (
+            <span className="mt-1 flex flex-wrap gap-1">
+              {cfg.buttons.map((b) => (
+                <span key={b} className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs">
+                  {b}
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </>
+      );
+    case 'SEND_IMAGE':
+    case 'SEND_AUDIO':
+    case 'SEND_VIDEO': {
+      const noun =
+        actionType === 'SEND_IMAGE' ? 'عکس' : actionType === 'SEND_AUDIO' ? 'فایل صوتی' : 'ویدیو';
+      return (
+        <>
+          {cfg.caption ? `${cfg.caption} — ` : ''}
+          {cfg.mediaUrl ? (
+            <a
+              href={cfg.mediaUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-brand-dark underline"
+            >
+              دیدن {noun}
+            </a>
+          ) : (
+            `${noun} تنظیم نشده`
+          )}
+        </>
+      );
+    }
+    case 'WAIT':
+      return `${toPersianDigits(cfg.seconds ?? 3)} ثانیه مکث`;
+    case 'NEEDS_HUMAN':
+      return 'گفتگو به کارتابل اپراتور منتقل می‌شود.';
+    default:
+      return '—';
+  }
+}
+
 export default async function AutomationDetailPage({
   params,
 }: {
@@ -84,12 +153,11 @@ export default async function AutomationDetailPage({
             {automation.steps.map((s) => (
               <div key={s.id} className="rounded-lg border border-neutral-100 p-3">
                 <div className="text-xs text-neutral-400">
-                  گام {toPersianDigits(s.order + 1)} — {s.actionType}
+                  گام {toPersianDigits(s.order + 1)} —{' '}
+                  {STEP_TYPE_LABELS[s.actionType] ?? s.actionType}
                 </div>
-                <div className="mt-1 text-neutral-800">
-                  {typeof (s.config as { text?: string }).text === 'string'
-                    ? (s.config as { text?: string }).text
-                    : JSON.stringify(s.config)}
+                <div className="mt-1 break-words text-neutral-800">
+                  {describeStep(s.actionType, s.config)}
                 </div>
               </div>
             ))}

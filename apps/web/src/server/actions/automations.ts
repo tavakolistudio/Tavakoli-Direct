@@ -34,6 +34,9 @@ const createSchema = z.object({
   mediaId: z.string().optional(),
   /** One variant per line; a random one is used for each comment. */
   publicReplies: z.string().optional(),
+  /** Checkbox: only answer contacts who follow the page. */
+  requireFollow: z.string().optional(),
+  followPrompt: z.string().optional(),
   priority: z.coerce.number().int().min(0).default(0),
   cooldownSeconds: z.coerce.number().int().min(0).default(0),
 });
@@ -172,6 +175,8 @@ export async function createAutomationAction(
           keywords,
           mediaId: d.triggerType === 'COMMENT_KEYWORD' ? d.mediaId?.trim() || null : null,
           publicReplies: d.triggerType === 'COMMENT_KEYWORD' ? parseLines(d.publicReplies) : [],
+          requireFollow: d.requireFollow === 'on',
+          followPrompt: d.followPrompt?.trim() || null,
         },
       },
       steps: { create: parsedSteps.steps },
@@ -243,6 +248,8 @@ export async function updateAutomationAction(
         mediaId: d.triggerType === 'COMMENT_KEYWORD' ? d.mediaId?.trim() || null : null,
         publicReply: null,
         publicReplies: d.triggerType === 'COMMENT_KEYWORD' ? parseLines(d.publicReplies) : [],
+        requireFollow: d.requireFollow === 'on',
+        followPrompt: d.followPrompt?.trim() || null,
       },
     }),
     prisma.automationStep.deleteMany({ where: { automationId: d.automationId } }),

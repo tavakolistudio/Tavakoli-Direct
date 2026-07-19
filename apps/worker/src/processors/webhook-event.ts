@@ -11,7 +11,8 @@ import {
   type EvaluationContext,
   type NormalizedInstagramEvent,
 } from '@tavakoli/core';
-import { prisma } from '@tavakoli/database';
+import { decryptSecret, prisma } from '@tavakoli/database';
+import { getProvider } from '@tavakoli/integrations';
 import { enqueueOutbound } from '../queues';
 import { toAutomationDef } from '../automation-map';
 import { log } from '../log';
@@ -33,6 +34,7 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     include: {
       client: true,
       capabilities: true,
+      credential: true,
       automations: { where: { deletedAt: null }, include: { trigger: true, steps: true } },
     },
   });
@@ -165,6 +167,43 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     return;
   }
 
+  // Follow gate: when required, non-followers get the follow prompt instead of
+  // the scenario. The prompt's button carries the trigger keyword as payload, so
+  // tapping it after following re-enters this same automation and passes.
+  if (winnerRow.trigger?.requireFollow && (event.kind === 'COMMENT' || event.kind === 'DM')) {
+    const follows = await checkFollows(account, event.senderScopedId);
+    // null = the check itself failed; fail open so a Meta hiccup never mutes replies.
+    if (follows === false) {
+      const gateExecution = await recordExecution(
+        winnerRow.id,
+        conversation.id,
+        contact.id,
+        'BLOCKED',
+        result,
+      );
+      const keyword = result.matchedKeyword ?? winnerRow.trigger.keywords[0] ?? '';
+      const prompt =
+        winnerRow.trigger.followPrompt?.trim() ||
+        'برای دریافت پاسخ، ابتدا صفحهٔ ما را دنبال کنید و بعد روی دکمهٔ زیر بزنید. 🙏';
+      await createOutbound({
+        accountId: account.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+        kind: event.kind === 'COMMENT' ? 'privateReply' : 'sendText',
+        executionId: gateExecution.id,
+        stepIndex: 0,
+        payload: {
+          recipientScopedId: event.senderScopedId,
+          ...(event.kind === 'COMMENT' ? { commentId: event.commentId } : {}),
+          text: prompt,
+          quickReplies: [{ title: 'فالو کردم ✅', payload: keyword }],
+        },
+      });
+      await markProcessed(webhookEvent.id, 'follow gate: prompt sent');
+      return;
+    }
+  }
+
   // Winner executes: record + apply actions + enqueue message sends.
   const execution = await recordExecution(
     winnerRow.id,
@@ -227,6 +266,26 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
 }
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
+
+/** Resolves whether the contact follows the page; null when the check failed. */
+async function checkFollows(
+  account: {
+    providerAccountId: string;
+    credential: { encryptedToken: string; tokenIv: string; tokenAuthTag: string } | null;
+  },
+  scopedUserId: string,
+): Promise<boolean | null> {
+  const provider = getProvider();
+  const accessToken =
+    provider.name === 'meta' && account.credential
+      ? decryptSecret({
+          ciphertext: account.credential.encryptedToken,
+          iv: account.credential.tokenIv,
+          authTag: account.credential.tokenAuthTag,
+        })
+      : undefined;
+  return provider.contactFollowsBusiness({ scopedUserId, accessToken });
+}
 
 /** Step kinds that produce an outbound message to the contact. */
 const MESSAGE_ACTIONS = new Set([

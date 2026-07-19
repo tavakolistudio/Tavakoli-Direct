@@ -6,7 +6,7 @@
  */
 import { mapProviderError } from '@tavakoli/core';
 import { decryptSecret, prisma, type MessageType } from '@tavakoli/database';
-import { getProvider, type SendResult } from '@tavakoli/integrations';
+import { getProvider, type QuickReply, type SendResult } from '@tavakoli/integrations';
 import { log } from '../log';
 
 interface JobData {
@@ -89,7 +89,7 @@ async function send(
         providerAccountId,
         recipientScopedId: payload.recipientScopedId!,
         text: payload.text!,
-        quickReplies: payload.quickReplies as unknown as string[] | undefined,
+        quickReplies: payload.quickReplies as unknown as QuickReply[] | undefined,
         accessToken,
       });
     case 'sendMedia':
@@ -106,7 +106,7 @@ async function send(
         providerAccountId,
         commentId: payload.commentId!,
         text: payload.text!,
-        quickReplies: payload.quickReplies as unknown as string[] | undefined,
+        quickReplies: payload.quickReplies as unknown as QuickReply[] | undefined,
         accessToken,
       });
     case 'publicCommentReply':

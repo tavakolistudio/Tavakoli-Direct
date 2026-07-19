@@ -358,6 +358,9 @@ model AutomationTrigger {
   mediaId       String?
   /// Legacy single public reply. Kept for existing rows; prefer publicReplies.
   publicReply   String?
+  /// When true, non-followers get followPrompt instead of the response steps.
+  requireFollow Boolean          @default(false)
+  followPrompt  String?
   /// Public reply variants; one is picked at random so replies look human.
   publicReplies String[]         @default([])
   createdAt     DateTime         @default(now())

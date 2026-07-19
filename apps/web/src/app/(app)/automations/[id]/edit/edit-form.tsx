@@ -21,6 +21,8 @@ export interface AutomationEditValues {
   priority: number;
   cooldownSeconds: number;
   accountId: string;
+  requireFollow: boolean;
+  followPrompt: string;
   mediaId: string;
   publicReplies: string;
 }
@@ -98,6 +100,25 @@ export function AutomationEditForm({
             </Select>
             <Label htmlFor="keywords">کلمات کلیدی (با کاما یا خط جدید جدا کنید)</Label>
             <Textarea id="keywords" name="keywords" defaultValue={values.keywords} />
+            <label className="flex items-center gap-2 text-sm text-neutral-800">
+              <input
+                type="checkbox"
+                name="requireFollow"
+                defaultChecked={values.requireFollow}
+                className="h-4 w-4"
+              />
+              فقط به دنبال‌کنندگان پیج پاسخ داده شود (فالو اجباری)
+            </label>
+            <Textarea
+              name="followPrompt"
+              rows={2}
+              defaultValue={values.followPrompt}
+              placeholder="پیام برای غیر دنبال‌کنندگان — خالی بگذارید تا متن پیش‌فرض ارسال شود."
+            />
+            <p className="text-xs text-neutral-500">
+              اگر کاربر پیج را دنبال نکرده باشد، به‌جای پاسخ اصلی این پیام با دکمهٔ «فالو کردم ✅»
+              برایش می‌رود؛ بعد از فالو و زدن دکمه، پاسخ اصلی ارسال می‌شود.
+            </p>
           </>
         ) : null}
 

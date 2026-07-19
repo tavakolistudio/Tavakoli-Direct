@@ -11,6 +11,8 @@ import type { NormalizedInstagramEvent } from '@tavakoli/core';
 import { verifySignature } from './signature';
 import type {
   CommentReplyInput,
+  FollowCheckInput,
+  QuickReply,
   InstagramMessagingProvider,
   PrivateReplyInput,
   ProviderCapabilities,
@@ -70,17 +72,19 @@ async function graphPost(
 }
 
 /** Meta caps quick replies at 13 buttons with 20-character titles. */
-function quickReplyPayload(titles: string[] | undefined): Record<string, unknown> {
-  const buttons = (titles ?? [])
-    .map((t) => t.trim())
-    .filter(Boolean)
+function quickReplyPayload(replies: QuickReply[] | undefined): Record<string, unknown> {
+  const buttons = (replies ?? [])
+    .map((r) => (typeof r === 'string' ? { title: r.trim(), payload: r.trim() } : r))
+    .filter((r) => r.title)
     .slice(0, 13);
   if (buttons.length === 0) return {};
   return {
-    quick_replies: buttons.map((title) => ({
+    quick_replies: buttons.map((b) => ({
       content_type: 'text',
-      title: title.slice(0, 20),
-      payload: title.slice(0, 20),
+      title: b.title.slice(0, 20),
+      // Payload comes back verbatim in the webhook, so it can carry the trigger
+      // keyword even when the visible title says something friendlier.
+      payload: (b.payload || b.title).slice(0, 1000),
     })),
   };
 }
@@ -124,7 +128,12 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
           sender?: { id?: string };
           recipient?: { id?: string };
           timestamp?: number;
-          message?: { mid?: string; text?: string; is_echo?: boolean };
+          message?: {
+            mid?: string;
+            text?: string;
+            is_echo?: boolean;
+            quick_reply?: { payload?: string };
+          };
           delivery?: { mids?: string[] };
           read?: unknown;
         }>;
@@ -156,12 +165,14 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
           });
           continue;
         }
-        if (m.message?.text) {
+        if (m.message?.text || m.message?.quick_reply?.payload) {
           events.push({
             kind: 'DM',
             providerAccountId: accountId,
             senderScopedId: m.sender?.id ?? '',
-            text: m.message.text,
+            // A quick-reply tap carries the real routing keyword in its payload;
+            // the visible text is just the button title.
+            text: m.message.quick_reply?.payload ?? m.message.text,
             providerMessageId: m.message.mid,
             providerTimestamp: m.timestamp ? new Date(m.timestamp).toISOString() : undefined,
             raw: m,
@@ -225,6 +236,27 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
       },
       requireToken(input.accessToken),
     );
+  }
+
+  async contactFollowsBusiness(input: FollowCheckInput): Promise<boolean | null> {
+    try {
+      const url = new URL(graphUrl(input.scopedUserId));
+      url.searchParams.set('fields', 'is_user_follow_business');
+      url.searchParams.set('access_token', requireToken(input.accessToken));
+      const res = await fetch(url, { method: 'GET' });
+      const json = (await res.json().catch(() => ({}))) as {
+        is_user_follow_business?: boolean;
+        error?: { message?: string };
+      };
+      if (!res.ok || typeof json.is_user_follow_business !== 'boolean') {
+        console.error('follow check failed:', res.status, JSON.stringify(json.error ?? {}));
+        return null;
+      }
+      return json.is_user_follow_business;
+    } catch (err) {
+      console.error('follow check failed:', (err as Error).message);
+      return null;
+    }
   }
 
   async sendPublicCommentReply(input: CommentReplyInput): Promise<SendResult> {

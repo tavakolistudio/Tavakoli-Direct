@@ -65,6 +65,8 @@ export default async function AutomationEditPage({
               priority: automation.priority,
               cooldownSeconds: automation.cooldownSeconds,
               accountId: automation.instagramAccountId,
+              requireFollow: automation.trigger?.requireFollow ?? false,
+              followPrompt: automation.trigger?.followPrompt ?? '',
               mediaId: automation.trigger?.mediaId ?? '',
               publicReplies: (automation.trigger?.publicReplies?.length
                 ? automation.trigger.publicReplies

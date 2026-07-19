@@ -99,6 +99,10 @@ export class MockInstagramProvider implements InstagramMessagingProvider {
     return resultFromMarker(input.commentId);
   }
 
+  async contactFollowsBusiness(): Promise<boolean | null> {
+    return true;
+  }
+
   async sendPublicCommentReply(input: CommentReplyInput): Promise<SendResult> {
     return resultFromMarker(input.commentId);
   }

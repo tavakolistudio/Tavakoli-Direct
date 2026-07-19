@@ -26,12 +26,15 @@ export interface WebhookVerifyInput {
   signature: string | null;
 }
 
+/** A tappable reply button. Payload defaults to the title when omitted. */
+export type QuickReply = string | { title: string; payload: string };
+
 export interface SendTextInput {
   providerAccountId: string;
   recipientScopedId: string;
   text: string;
   /** Tappable reply buttons shown under the message. Max 13, 20 chars each. */
-  quickReplies?: string[];
+  quickReplies?: QuickReply[];
   /** Access token (decrypted just-in-time by the caller; never logged). */
   accessToken?: string;
 }
@@ -47,7 +50,7 @@ export interface PrivateReplyInput {
   providerAccountId: string;
   commentId: string;
   text: string;
-  quickReplies?: string[];
+  quickReplies?: QuickReply[];
   accessToken?: string;
 }
 
@@ -55,6 +58,12 @@ export interface CommentReplyInput {
   providerAccountId: string;
   commentId: string;
   text: string;
+  accessToken?: string;
+}
+
+export interface FollowCheckInput {
+  /** Instagram-scoped id of the contact, as delivered in webhooks. */
+  scopedUserId: string;
   accessToken?: string;
 }
 
@@ -74,4 +83,9 @@ export interface InstagramMessagingProvider {
   sendMedia(input: SendMediaInput): Promise<SendResult>;
   sendPrivateReply(input: PrivateReplyInput): Promise<SendResult>;
   sendPublicCommentReply(input: CommentReplyInput): Promise<SendResult>;
+  /**
+   * Whether the contact follows the business account. Returns null when the
+   * check itself failed, so callers can fail open instead of blocking replies.
+   */
+  contactFollowsBusiness(input: FollowCheckInput): Promise<boolean | null>;
 }
