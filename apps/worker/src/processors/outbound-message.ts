@@ -89,6 +89,7 @@ async function send(
         providerAccountId,
         recipientScopedId: payload.recipientScopedId!,
         text: payload.text!,
+        quickReplies: payload.quickReplies as unknown as string[] | undefined,
         accessToken,
       });
     case 'sendMedia':
@@ -105,6 +106,7 @@ async function send(
         providerAccountId,
         commentId: payload.commentId!,
         text: payload.text!,
+        quickReplies: payload.quickReplies as unknown as string[] | undefined,
         accessToken,
       });
     case 'publicCommentReply':

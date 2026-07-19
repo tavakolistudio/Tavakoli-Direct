@@ -69,6 +69,22 @@ async function graphPost(
   }
 }
 
+/** Meta caps quick replies at 13 buttons with 20-character titles. */
+function quickReplyPayload(titles: string[] | undefined): Record<string, unknown> {
+  const buttons = (titles ?? [])
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 13);
+  if (buttons.length === 0) return {};
+  return {
+    quick_replies: buttons.map((title) => ({
+      content_type: 'text',
+      title: title.slice(0, 20),
+      payload: title.slice(0, 20),
+    })),
+  };
+}
+
 function requireToken(token: string | undefined): string {
   if (!token) throw new Error('Meta provider requires a decrypted access token');
   return token;
@@ -174,7 +190,10 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
   async sendText(input: SendTextInput): Promise<SendResult> {
     return graphPost(
       `${input.providerAccountId}/messages`,
-      { recipient: { id: input.recipientScopedId }, message: { text: input.text } },
+      {
+        recipient: { id: input.recipientScopedId },
+        message: { text: input.text, ...quickReplyPayload(input.quickReplies) },
+      },
       requireToken(input.accessToken),
     );
   }
@@ -200,7 +219,10 @@ export class MetaInstagramProvider implements InstagramMessagingProvider {
     // comment rather than to a user id — there is no private_replies edge here.
     return graphPost(
       `${input.providerAccountId}/messages`,
-      { recipient: { comment_id: input.commentId }, message: { text: input.text } },
+      {
+        recipient: { comment_id: input.commentId },
+        message: { text: input.text, ...quickReplyPayload(input.quickReplies) },
+      },
       requireToken(input.accessToken),
     );
   }

@@ -16,6 +16,8 @@ export interface StepDraft {
   mediaUrl?: string;
   caption?: string;
   seconds?: number;
+  /** Quick-reply button titles, for SEND_QUICK_REPLIES. */
+  buttons?: string[];
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -23,6 +25,7 @@ const STEP_LABELS: Record<string, string> = {
   SEND_IMAGE: 'ارسال عکس',
   SEND_AUDIO: 'ارسال صدا',
   SEND_VIDEO: 'ارسال فیلم',
+  SEND_QUICK_REPLIES: 'متن + دکمه',
   WAIT: 'مکث',
   NEEDS_HUMAN: 'ارجاع به اپراتور',
 };
@@ -32,9 +35,14 @@ const STEP_HINTS: Record<string, string> = {
   SEND_IMAGE: 'فایل jpg یا png را آپلود کنید، یا آدرس مستقیم یک عکس عمومی را بگذارید.',
   SEND_AUDIO: 'فایل m4a یا mp3، حداکثر ۸ مگابایت. پس از آپلود برای مخاطب ارسال می‌شود.',
   SEND_VIDEO: 'فایل mp4، حداکثر ۲۵ مگابایت.',
+  SEND_QUICK_REPLIES:
+    'متن به‌همراه دکمه‌های قابل لمس. کاربر با زدن دکمه، همان متن را برایتان می‌فرستد — پس می‌توانید روی همان کلمه یک اتوماسیون دیگر بسازید.',
   WAIT: 'کمی صبر می‌کند تا پیام‌ها پشت سر هم و طبیعی‌تر برسند.',
   NEEDS_HUMAN: 'گفتگو به کارتابل اپراتور می‌رود تا انسان جواب دهد.',
 };
+
+const NEWLINE = '\n';
+const BUTTONS_PLACEHOLDER = ['تعرفه‌ها', 'نمونه کارها', 'مشاوره رایگان'].join(NEWLINE);
 
 function emptyStep(actionType: string): StepDraft {
   return actionType === 'WAIT' ? { actionType, seconds: 3 } : { actionType };
@@ -117,6 +125,28 @@ export function StepsEditor({ initial }: { initial: StepDraft[] }): React.ReactE
               </Button>
             ) : null}
           </div>
+
+          {step.actionType === 'SEND_QUICK_REPLIES' ? (
+            <div className="space-y-2">
+              <Textarea
+                rows={3}
+                value={step.text ?? ''}
+                onChange={(e) => update(i, { text: e.target.value })}
+                placeholder="متن پیام…"
+              />
+              <Label htmlFor={`buttons-${i}`}>دکمه‌ها (هر خط یک دکمه)</Label>
+              <Textarea
+                id={`buttons-${i}`}
+                rows={3}
+                value={(step.buttons ?? []).join(NEWLINE)}
+                onChange={(e) => update(i, { buttons: e.target.value.split(NEWLINE) })}
+                placeholder={BUTTONS_PLACEHOLDER}
+              />
+              <p className="text-xs text-neutral-500">
+                حداکثر ۱۳ دکمه، هرکدام تا ۲۰ کاراکتر. متن بلندتر کوتاه می‌شود.
+              </p>
+            </div>
+          ) : null}
 
           {step.actionType === 'SEND_TEXT' ? (
             <Textarea

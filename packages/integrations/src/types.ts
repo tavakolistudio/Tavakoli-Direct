@@ -30,6 +30,8 @@ export interface SendTextInput {
   providerAccountId: string;
   recipientScopedId: string;
   text: string;
+  /** Tappable reply buttons shown under the message. Max 13, 20 chars each. */
+  quickReplies?: string[];
   /** Access token (decrypted just-in-time by the caller; never logged). */
   accessToken?: string;
 }
@@ -45,6 +47,7 @@ export interface PrivateReplyInput {
   providerAccountId: string;
   commentId: string;
   text: string;
+  quickReplies?: string[];
   accessToken?: string;
 }
 
