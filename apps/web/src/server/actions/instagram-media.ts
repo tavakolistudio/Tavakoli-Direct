@@ -47,42 +47,57 @@ export async function listAccountPostsAction(accountId: string): Promise<Account
     authTag: account.credential.tokenAuthTag,
   });
 
-  const url = new URL(`https://graph.instagram.com/${env.META_GRAPH_API_VERSION}/me/media`);
-  // Keep to fields valid for every media type: thumbnail_url/media_url are not
-  // universally available and make the whole request fail.
-  url.searchParams.set('fields', 'id,caption,media_type,permalink');
-  url.searchParams.set('limit', '25');
-  url.searchParams.set('access_token', token);
+  // Meta rejects some shapes of this call with a bare "unknown error", and which
+  // one works varies by app setup, so try the documented variants in order.
+  const candidates = [
+    `https://graph.instagram.com/${env.META_GRAPH_API_VERSION}/${account.providerAccountId}/media`,
+    `https://graph.instagram.com/${env.META_GRAPH_API_VERSION}/me/media`,
+    `https://graph.instagram.com/me/media`,
+  ];
+
+  let lastError = 'دریافت پست‌ها ناموفق بود.';
 
   try {
-    const res = await fetch(url, { method: 'GET' });
-    const json = (await res.json().catch(() => ({}))) as {
-      data?: Array<{
-        id?: string;
-        caption?: string;
-        media_type?: string;
-        permalink?: string;
-      }>;
-      error?: { message?: string };
-    };
-    if (!res.ok || !json.data) {
-      console.error('instagram media fetch failed:', res.status, JSON.stringify(json.error ?? {}));
-      return {
-        posts: [],
-        error: json.error?.message
-          ? `دریافت پست‌ها ناموفق بود: ${json.error.message}`
-          : 'دریافت پست‌ها ناموفق بود.',
+    for (const candidate of candidates) {
+      const url = new URL(candidate);
+      // Fields valid for every media type; thumbnail_url/media_url are not.
+      url.searchParams.set('fields', 'id,caption,media_type,permalink');
+      url.searchParams.set('limit', '25');
+      url.searchParams.set('access_token', token);
+
+      const res = await fetch(url, { method: 'GET' });
+      const json = (await res.json().catch(() => ({}))) as {
+        data?: Array<{
+          id?: string;
+          caption?: string;
+          media_type?: string;
+          permalink?: string;
+        }>;
+        error?: { message?: string };
       };
+
+      if (res.ok && json.data) {
+        return {
+          posts: json.data
+            .filter((m): m is { id: string } & typeof m => Boolean(m.id))
+            .map((m) => ({
+              id: m.id,
+              label: summarise(m.caption, m.media_type),
+              permalink: m.permalink,
+            })),
+        };
+      }
+
+      console.error(
+        'instagram media fetch failed:',
+        candidate,
+        res.status,
+        JSON.stringify(json.error ?? {}),
+      );
+      if (json.error?.message) lastError = `دریافت پست‌ها ناموفق بود: ${json.error.message}`;
     }
-    return {
-      posts: json.data
-        .filter((m): m is { id: string } & typeof m => Boolean(m.id))
-        .map((m) => ({
-          id: m.id,
-          label: summarise(m.caption, m.media_type),
-          permalink: m.permalink,
-        })),
-    };
+
+    return { posts: [], error: lastError };
   } catch (err) {
     return { posts: [], error: (err as Error).message };
   }
