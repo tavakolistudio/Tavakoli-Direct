@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { requireUser } from '@/lib/guards';
 import { clientScope } from '@/server/queries';
 import { prisma } from '@tavakoli/database';
+import { ensureAiSchema } from '@/server/ensure-ai-schema';
 import { AiReplyRowActions } from './ai-reply-row-actions';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
 
 export default async function AiRepliesPage(): Promise<React.ReactElement> {
   const user = await requireUser();
+  await ensureAiSchema();
   const scope = await clientScope(user);
 
   const replies = await prisma.automation.findMany({

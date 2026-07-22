@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { assertClientAccess, requireAdmin } from '@/lib/guards';
 import { prisma } from '@tavakoli/database';
 import { updateAiReplyAction } from '@/server/actions/ai-replies';
+import { ensureAiSchema } from '@/server/ensure-ai-schema';
 import { AiReplyForm } from '../../ai-reply-form';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ export default async function EditAiReplyPage({
 }): Promise<React.ReactElement> {
   const { id } = await params;
   const user = await requireAdmin();
+  await ensureAiSchema();
 
   const automation = await prisma.automation.findFirst({
     where: { id, aiManaged: true, deletedAt: null },

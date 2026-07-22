@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { prisma, type Prisma } from '@tavakoli/database';
 import { audit } from '@/lib/audit';
 import { assertClientAccess, requireAdmin } from '@/lib/guards';
+import { ensureAiSchema } from '@/server/ensure-ai-schema';
 
 /**
  * Server actions for the standalone "پاسخ هوشمند" (AI auto-reply) section. Each
@@ -59,6 +60,7 @@ export async function createAiReplyAction(
   formData: FormData,
 ): Promise<AiReplyFormState> {
   const user = await requireAdmin();
+  await ensureAiSchema();
   const parsed = createSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'اطلاعات نامعتبر است.' };
   const d = parsed.data;
@@ -109,6 +111,7 @@ export async function updateAiReplyAction(
   formData: FormData,
 ): Promise<AiReplyFormState> {
   const user = await requireAdmin();
+  await ensureAiSchema();
   const parsed = updateSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'اطلاعات نامعتبر است.' };
   const d = parsed.data;
@@ -155,6 +158,7 @@ export async function setAiReplyEnabledAction(
   enabled: boolean,
 ): Promise<void> {
   const user = await requireAdmin();
+  await ensureAiSchema();
   const existing = await prisma.automation.findFirst({
     where: { id: automationId, aiManaged: true, deletedAt: null },
     select: { id: true, clientId: true },
@@ -176,6 +180,7 @@ export async function setAiReplyEnabledAction(
 
 export async function deleteAiReplyAction(automationId: string): Promise<{ ok: boolean }> {
   const user = await requireAdmin();
+  await ensureAiSchema();
   const existing = await prisma.automation.findFirst({
     where: { id: automationId, aiManaged: true, deletedAt: null },
     select: { id: true, clientId: true },
