@@ -337,6 +337,9 @@ model Automation {
   handoffOnError          Boolean          @default(true)
   executionCount          Int              @default(0)
   lastExecutedAt          DateTime?
+  // Managed by the standalone "پاسخ هوشمند" (AI auto-reply) section rather than
+  // the automation builder; hidden from the automations list.
+  aiManaged               Boolean          @default(false)
   createdAt               DateTime         @default(now())
   updatedAt               DateTime         @updatedAt
   deletedAt               DateTime?

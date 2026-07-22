@@ -5,6 +5,8 @@ const paths: Record<string, string> = {
   briefcase: 'M3 8h18v11H3zM8 8V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3',
   instagram: 'M4 4h16v16H4zM16 11.4a4 4 0 1 1-4.6-4.6M17.5 6.5h.01',
   bolt: 'M13 3 4 14h7l-1 7 9-11h-7z',
+  sparkles:
+    'M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9zM19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z',
   inbox: 'M3 12h5l2 3h4l2-3h5M4 4h16v16H4z',
   users: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
