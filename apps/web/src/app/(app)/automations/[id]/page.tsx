@@ -144,6 +144,25 @@ export default async function AutomationDetailPage({
             {automation.trigger && automation.trigger.keywords.length > 0 ? (
               <div>کلمات کلیدی: {automation.trigger.keywords.join('، ')}</div>
             ) : null}
+            {automation.trigger?.type === 'COMMENT_KEYWORD' ? (
+              automation.trigger.mediaId ? (
+                <div className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">
+                  ⚠️ فقط روی کامنت‌های یک پست خاص کار می‌کند
+                  <span dir="ltr" className="mr-1 text-xs text-amber-700">
+                    ({automation.trigger.mediaId})
+                  </span>
+                  . کامنت زیر بقیهٔ پست‌ها نادیده گرفته می‌شود — برای فعال‌شدن روی همهٔ پست‌ها، در
+                  ویرایش «برداشتن محدودیت پست» را بزنید.
+                </div>
+              ) : (
+                <div className="text-neutral-500">روی کامنت همهٔ پست‌ها فعال است.</div>
+              )
+            ) : null}
+            {automation.trigger?.requireFollow ? (
+              <div className="text-neutral-500">
+                فقط به دنبال‌کنندگان پیج پاسخ می‌دهد (فالو اجباری)
+              </div>
+            ) : null}
             <div>اولویت: {toPersianDigits(automation.priority)}</div>
             <div>فاصله زمانی: {toPersianDigits(automation.cooldownSeconds)} ثانیه</div>
             <div>تعداد اجرا: {toPersianDigits(automation.executionCount)}</div>

@@ -74,7 +74,19 @@ export default async function AutomationsPage(): Promise<React.ReactElement> {
                   </TD>
                   <TD>{a.client.name}</TD>
                   <TD>@{a.instagramAccount.username}</TD>
-                  <TD>{a.trigger ? TRIGGER_LABELS[a.trigger.type] : '—'}</TD>
+                  <TD>
+                    {a.trigger ? TRIGGER_LABELS[a.trigger.type] : '—'}
+                    {a.trigger?.mediaId ? (
+                      <span className="mr-1 text-amber-600" title="فقط روی یک پست خاص فعال است">
+                        📌
+                      </span>
+                    ) : null}
+                    {a.trigger?.requireFollow ? (
+                      <span className="mr-1 text-neutral-400" title="فالو اجباری">
+                        🔒
+                      </span>
+                    ) : null}
+                  </TD>
                   <TD>
                     <Badge tone={statusTone[a.status]}>{AUTOMATION_STATUS_LABELS[a.status]}</Badge>
                   </TD>
