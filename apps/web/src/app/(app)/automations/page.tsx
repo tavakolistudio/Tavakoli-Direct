@@ -7,6 +7,7 @@ import { toPersianDigits } from '@/lib/dates';
 import { requireUser } from '@/lib/guards';
 import { clientScope } from '@/server/queries';
 import { prisma } from '@tavakoli/database';
+import { ensureAiSchema } from '@/server/ensure-ai-schema';
 import { DeleteAutomationButton } from './delete-automation-button';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,7 @@ const statusTone: Record<string, 'success' | 'neutral' | 'warning'> = {
 
 export default async function AutomationsPage(): Promise<React.ReactElement> {
   const user = await requireUser();
+  await ensureAiSchema();
   const scope = await clientScope(user);
 
   const automations = await prisma.automation.findMany({
