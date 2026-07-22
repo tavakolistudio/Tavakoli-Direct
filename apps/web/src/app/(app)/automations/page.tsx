@@ -23,7 +23,7 @@ export default async function AutomationsPage(): Promise<React.ReactElement> {
   const scope = await clientScope(user);
 
   const automations = await prisma.automation.findMany({
-    where: { ...scope, deletedAt: null },
+    where: { ...scope, deletedAt: null, aiManaged: false },
     orderBy: [{ status: 'asc' }, { priority: 'desc' }],
     include: { trigger: true, client: true, instagramAccount: true },
   });

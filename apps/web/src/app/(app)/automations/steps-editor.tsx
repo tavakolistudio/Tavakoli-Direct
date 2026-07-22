@@ -18,19 +18,10 @@ export interface StepDraft {
   seconds?: number;
   /** Quick-reply button titles, for SEND_QUICK_REPLIES. */
   buttons?: string[];
-  /** AI_REPLY: knowledge base the reply is drafted from. */
-  knowledge?: string;
-  /** AI_REPLY: optional tone/style instructions. */
-  instructions?: string;
-  /** AI_REPLY: reply used if the AI call fails. */
-  fallbackText?: string;
-  /** AI_REPLY: reply language (auto | fa | tr | en). */
-  language?: string;
 }
 
 const STEP_LABELS: Record<string, string> = {
   SEND_TEXT: 'ارسال متن',
-  AI_REPLY: 'پاسخ هوشمند (AI)',
   SEND_IMAGE: 'ارسال عکس',
   SEND_AUDIO: 'ارسال صدا',
   SEND_VIDEO: 'ارسال فیلم',
@@ -41,8 +32,6 @@ const STEP_LABELS: Record<string, string> = {
 
 const STEP_HINTS: Record<string, string> = {
   SEND_TEXT: 'برای کامنت، این پیام به‌صورت دایرکت برای کامنت‌گذار می‌رود.',
-  AI_REPLY:
-    'هوش مصنوعی بر اساس دانشی که وارد می‌کنید، برای هر کامنت یک پاسخ اختصاصی می‌نویسد و به‌صورت دایرکت می‌فرستد.',
   SEND_IMAGE: 'فایل jpg یا png را آپلود کنید، یا آدرس مستقیم یک عکس عمومی را بگذارید.',
   SEND_AUDIO:
     'فایل m4a، aac یا wav، حداکثر ۸ مگابایت (mp3 پذیرفته نمی‌شود چون اینستاگرام نمایشش نمی‌دهد). پس از آپلود برای مخاطب ارسال می‌شود.',
@@ -62,14 +51,11 @@ const BUTTONS_PLACEHOLDER = ['تعرفه‌ها', 'سایت ما | https://examp
 );
 
 function emptyStep(actionType: string): StepDraft {
-  if (actionType === 'WAIT') return { actionType, seconds: 3 };
-  if (actionType === 'AI_REPLY') return { actionType, language: 'auto' };
-  return { actionType };
+  return actionType === 'WAIT' ? { actionType, seconds: 3 } : { actionType };
 }
 
 const MESSAGE_ACTIONS = [
   'SEND_TEXT',
-  'AI_REPLY',
   'SEND_QUICK_REPLIES',
   'SEND_IMAGE',
   'SEND_AUDIO',
@@ -278,55 +264,6 @@ export function StepsEditor({
                   </button>
                 ))}
               </div>
-            </div>
-          ) : null}
-
-          {step.actionType === 'AI_REPLY' ? (
-            <div className="space-y-2">
-              <Label htmlFor={`knowledge-${i}`}>
-                دانش / اطلاعاتی که پاسخ‌ها بر اساس آن ساخته شوند
-              </Label>
-              <Textarea
-                id={`knowledge-${i}`}
-                rows={5}
-                value={step.knowledge ?? ''}
-                onChange={(e) => update(i, { knowledge: e.target.value })}
-                placeholder={
-                  'مثلاً: تعرفه عکاسی پرتره از ۵۰۰ هزار تومان شروع می‌شود.\n' +
-                  'ساعت کاری: شنبه تا چهارشنبه ۱۰ تا ۱۸.\n' +
-                  'برای رزرو، شماره تماس بگذارید.'
-                }
-              />
-              <Label htmlFor={`language-${i}`}>زبان پاسخ</Label>
-              <Select
-                id={`language-${i}`}
-                value={step.language ?? 'auto'}
-                onChange={(e) => update(i, { language: e.target.value })}
-                className="max-w-64"
-              >
-                <option value="auto">خودکار (هم‌زبان با کامنت کاربر)</option>
-                <option value="fa">فارسی</option>
-                <option value="tr">ترکی استانبولی</option>
-                <option value="en">انگلیسی</option>
-              </Select>
-              <Label htmlFor={`instructions-${i}`}>دستورالعمل لحن و سبک (اختیاری)</Label>
-              <Textarea
-                id={`instructions-${i}`}
-                rows={2}
-                value={step.instructions ?? ''}
-                onChange={(e) => update(i, { instructions: e.target.value })}
-                placeholder="مثلاً: مؤدب و صمیمی باش و همیشه از مشتری برای پیامش تشکر کن."
-              />
-              <Label htmlFor={`fallback-${i}`}>
-                پاسخ جایگزین در صورت خطای هوش مصنوعی (اختیاری)
-              </Label>
-              <Textarea
-                id={`fallback-${i}`}
-                rows={2}
-                value={step.fallbackText ?? ''}
-                onChange={(e) => update(i, { fallbackText: e.target.value })}
-                placeholder="سلام، ممنون از پیام‌تان. همکاران ما به‌زودی پاسخ می‌دهند."
-              />
             </div>
           ) : null}
 

@@ -5,6 +5,7 @@ export const NAV_ITEMS = [
   { href: '/clients', label: 'مجموعه‌ها', icon: 'briefcase' },
   { href: '/instagram-accounts', label: 'پیج‌های اینستاگرام', icon: 'instagram' },
   { href: '/automations', label: 'اتوماسیون‌ها', icon: 'bolt' },
+  { href: '/ai-replies', label: 'پاسخ هوشمند', icon: 'sparkles' },
   { href: '/inbox', label: 'صندوق پیام‌ها', icon: 'inbox' },
   { href: '/contacts', label: 'مخاطبان', icon: 'users' },
   { href: '/reports', label: 'گزارش‌ها', icon: 'chart' },
