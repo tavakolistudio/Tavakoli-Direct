@@ -13,7 +13,7 @@ import {
   type NormalizedInstagramEvent,
 } from '@tavakoli/core';
 import { decryptSecret, prisma, type Prisma } from '@tavakoli/database';
-import { getProvider } from '@tavakoli/integrations';
+import { getAiReplyProvider, getProvider } from '@tavakoli/integrations';
 import { enqueueOutbound } from '../queues';
 import { toAutomationDef } from '../automation-map';
 import { log } from '../log';
@@ -497,6 +497,7 @@ async function checkFollows(
 /** Step kinds that produce an outbound message to the contact. */
 const MESSAGE_ACTIONS = new Set([
   'SEND_TEXT',
+  'AI_REPLY',
   'SEND_QUICK_REPLIES',
   'SEND_IMAGE',
   'SEND_AUDIO',
@@ -647,6 +648,47 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
               text: cfg.text,
               buttons,
             },
+      });
+      break;
+    }
+    case 'AI_REPLY': {
+      // Draft the reply from the step's knowledge base, then send it the same way
+      // a static reply would go out (private DM reply for the comment itself).
+      const ai = getAiReplyProvider();
+      const generated = await ai.generateReply({
+        knowledge: typeof cfg.knowledge === 'string' ? cfg.knowledge : '',
+        instructions: typeof cfg.instructions === 'string' ? cfg.instructions : undefined,
+        commentText: input.event.text ?? '',
+        contactUsername: input.event.senderUsername,
+        language:
+          cfg.language === 'fa' || cfg.language === 'tr' || cfg.language === 'en'
+            ? cfg.language
+            : 'auto',
+      });
+      const text = generated.success
+        ? generated.text
+        : typeof cfg.fallbackText === 'string' && cfg.fallbackText.trim()
+          ? cfg.fallbackText
+          : undefined;
+      if (!text) {
+        // No draft and no fallback → hand off to a human rather than stay silent.
+        input.onHandoff();
+        break;
+      }
+      await createOutbound({
+        accountId: input.account.id,
+        conversationId: input.conversation.id,
+        contactId: input.contact.id,
+        kind: input.asPrivateReply ? 'privateReply' : 'sendText',
+        executionId: input.executionId,
+        stepIndex: idx,
+        payload: input.asPrivateReply
+          ? {
+              commentId: input.event.commentId,
+              text,
+              recipientScopedId: input.event.senderScopedId,
+            }
+          : { recipientScopedId: input.event.senderScopedId, text },
       });
       break;
     }

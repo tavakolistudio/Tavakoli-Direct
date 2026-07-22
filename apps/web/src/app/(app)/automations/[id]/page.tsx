@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 const STEP_TYPE_LABELS: Record<string, string> = {
   SEND_TEXT: 'ارسال متن',
+  AI_REPLY: 'پاسخ هوشمند (AI)',
   SEND_QUICK_REPLIES: 'متن + دکمه',
   SEND_IMAGE: 'ارسال عکس',
   SEND_AUDIO: 'ارسال صدا',
@@ -29,10 +30,30 @@ function describeStep(actionType: string, config: unknown): React.ReactNode {
     mediaUrl?: string;
     seconds?: number;
     buttons?: Array<string | { title?: string; url?: string }>;
+    knowledge?: string;
+    language?: string;
   };
   switch (actionType) {
     case 'SEND_TEXT':
       return cfg.text ?? '—';
+    case 'AI_REPLY': {
+      const langLabel =
+        cfg.language === 'fa'
+          ? 'فارسی'
+          : cfg.language === 'tr'
+            ? 'ترکی'
+            : cfg.language === 'en'
+              ? 'انگلیسی'
+              : 'خودکار';
+      return (
+        <>
+          <span className="text-neutral-500">پاسخ هوشمند بر اساس دانش (زبان: {langLabel})</span>
+          {cfg.knowledge ? (
+            <span className="mt-1 block whitespace-pre-wrap">{cfg.knowledge}</span>
+          ) : null}
+        </>
+      );
+    }
     case 'SEND_QUICK_REPLIES':
       return (
         <>

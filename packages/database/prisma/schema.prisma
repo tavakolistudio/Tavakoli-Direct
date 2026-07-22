@@ -37,6 +37,7 @@ enum KeywordMatchMode {
 
 enum ActionType {
   SEND_TEXT
+  AI_REPLY
   SEND_IMAGE
   SEND_AUDIO
   SEND_VIDEO

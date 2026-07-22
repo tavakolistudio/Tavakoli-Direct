@@ -17,6 +17,7 @@ export type KeywordMatchMode = (typeof KEYWORD_MATCH_MODES)[number];
 
 export const ACTION_TYPES = [
   'SEND_TEXT',
+  'AI_REPLY',
   'SEND_IMAGE',
   'SEND_LINK',
   'SEND_QUICK_REPLIES',
