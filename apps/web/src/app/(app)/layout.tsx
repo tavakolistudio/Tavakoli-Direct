@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/sidebar';
 import { requireUser } from '@/lib/guards';
+import { ensureAiSchema } from '@/server/ensure-ai-schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,9 @@ export default async function AppLayout({
   children: React.ReactNode;
 }): Promise<React.ReactElement> {
   const user = await requireUser();
+  // One-time, self-healing schema sync for the AI auto-reply feature (the prod
+  // DB couldn't be migrated at build time). Idempotent and best-effort.
+  await ensureAiSchema();
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
