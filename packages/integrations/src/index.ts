@@ -4,6 +4,7 @@ import { MockInstagramProvider } from './mock';
 import type { InstagramMessagingProvider } from './types';
 
 export * from './types';
+export * from './ai';
 export * from './signature';
 export { MockInstagramProvider } from './mock';
 export { MetaInstagramProvider } from './meta';

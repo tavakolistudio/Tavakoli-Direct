@@ -36,6 +36,12 @@ const baseSchema = z.object({
 
   INSTAGRAM_PROVIDER: z.enum(['mock', 'meta']).default('mock'),
 
+  // AI auto-reply (OpenAI). When OPENAI_API_KEY is absent the platform falls back
+  // to a deterministic mock generator, so the product still runs without a key.
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default('gpt-4o-mini'),
+  OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
+
   META_APP_ID: z.string().optional(),
   META_APP_SECRET: z.string().optional(),
   META_VERIFY_TOKEN: z.string().optional(),

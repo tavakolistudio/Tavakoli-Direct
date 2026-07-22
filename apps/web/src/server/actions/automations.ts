@@ -116,6 +116,7 @@ function deriveTrigger(
 const stepSchema = z.object({
   actionType: z.enum([
     'SEND_TEXT',
+    'AI_REPLY',
     'SEND_QUICK_REPLIES',
     'SEND_IMAGE',
     'SEND_AUDIO',
@@ -128,6 +129,11 @@ const stepSchema = z.object({
   caption: z.string().optional(),
   seconds: z.coerce.number().int().min(1).max(60).optional(),
   buttons: z.array(z.string()).optional(),
+  // AI_REPLY fields.
+  knowledge: z.string().optional(),
+  instructions: z.string().optional(),
+  fallbackText: z.string().optional(),
+  language: z.enum(['auto', 'fa', 'tr', 'en']).optional(),
 });
 
 /**
@@ -142,6 +148,7 @@ type StepRow = {
 
 const MESSAGE_STEP_TYPES = new Set([
   'SEND_TEXT',
+  'AI_REPLY',
   'SEND_QUICK_REPLIES',
   'SEND_IMAGE',
   'SEND_AUDIO',
@@ -170,10 +177,15 @@ function parseSteps(
   if (isCommentTrigger) {
     const messageSteps = result.data.filter((s) => MESSAGE_STEP_TYPES.has(s.actionType));
     const first = messageSteps[0];
-    if (first && first.actionType !== 'SEND_TEXT' && first.actionType !== 'SEND_QUICK_REPLIES') {
+    if (
+      first &&
+      first.actionType !== 'SEND_TEXT' &&
+      first.actionType !== 'SEND_QUICK_REPLIES' &&
+      first.actionType !== 'AI_REPLY'
+    ) {
       return {
         error:
-          'برای پاسخ به کامنت، اولین پیام باید «ارسال متن» یا «متن + دکمه» باشد — اینستاگرام عکس یا صدا را به‌عنوان اولین پیام به کسی که فقط کامنت گذاشته تحویل نمی‌دهد.',
+          'برای پاسخ به کامنت، اولین پیام باید «ارسال متن»، «پاسخ هوشمند (AI)» یا «متن + دکمه» باشد — اینستاگرام عکس یا صدا را به‌عنوان اولین پیام به کسی که فقط کامنت گذاشته تحویل نمی‌دهد.',
       };
     }
     if (messageSteps.length > 1) {
@@ -231,6 +243,19 @@ function parseSteps(
         };
       }
       config = { mediaUrl, caption: (step.caption ?? '').trim() || undefined };
+    } else if (step.actionType === 'AI_REPLY') {
+      const knowledge = (step.knowledge ?? '').trim();
+      if (knowledge.length < 10) {
+        return {
+          error: `برای «پاسخ هوشمند» در گام ${index + 1}، اطلاعات/دانش کافی (حداقل ۱۰ کاراکتر) وارد کنید.`,
+        };
+      }
+      config = {
+        knowledge,
+        instructions: (step.instructions ?? '').trim() || undefined,
+        fallbackText: (step.fallbackText ?? '').trim() || undefined,
+        language: step.language ?? 'auto',
+      };
     } else if (step.actionType === 'WAIT') {
       config = { seconds: step.seconds ?? 3 };
     }
