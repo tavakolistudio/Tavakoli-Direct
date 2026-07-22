@@ -175,9 +175,7 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     if (follows === false) {
       // Tapped before actually following — resend the same prompt rather than
       // silently doing nothing, which is the exact bug this token replaces.
-      const prompt =
-        targetRow.trigger?.followPrompt?.trim() ||
-        'برای دریافت پاسخ، ابتدا صفحهٔ ما را فالو داشته باشید و بعد روی دکمهٔ زیر بزنید. 🙏';
+      const prompt = targetRow.trigger?.followPrompt?.trim() || DEFAULT_FOLLOW_PROMPT;
       await createOutbound({
         accountId: account.id,
         conversationId: conversation.id,
@@ -189,7 +187,10 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
           recipientScopedId: event.senderScopedId,
           text: prompt,
           buttons: [
-            { title: 'فالو کردم ✅', payload: resumeToken(targetRow.id, resume.fromOrder) },
+            {
+              title: followButtonTitle(targetRow.trigger),
+              payload: resumeToken(targetRow.id, resume.fromOrder),
+            },
           ],
         },
       });
@@ -268,9 +269,7 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
         'BLOCKED',
         result,
       );
-      const prompt =
-        winnerRow.trigger.followPrompt?.trim() ||
-        'برای دریافت پاسخ، ابتدا صفحهٔ ما را فالو داشته باشید و بعد روی دکمهٔ زیر بزنید. 🙏';
+      const prompt = winnerRow.trigger.followPrompt?.trim() || DEFAULT_FOLLOW_PROMPT;
       await createOutbound({
         accountId: account.id,
         conversationId: conversation.id,
@@ -285,7 +284,9 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
           // Carries which automation to resume, NOT the trigger keyword — the tap
           // always arrives as a DM, so a keyword payload could never re-match a
           // COMMENT_KEYWORD trigger. See parseResumeToken.
-          buttons: [{ title: 'فالو کردم ✅', payload: resumeToken(winnerRow.id) }],
+          buttons: [
+            { title: followButtonTitle(winnerRow.trigger), payload: resumeToken(winnerRow.id) },
+          ],
         },
       });
       await markProcessed(webhookEvent.id, 'follow gate: prompt sent');
@@ -314,6 +315,15 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
  * a comment scenario past Meta's one-private-reply limit (fromOrder > 0 — the
  * opening message already went out; only the remaining steps run).
  */
+const DEFAULT_FOLLOW_PROMPT =
+  'برای دریافت پاسخ، ابتدا صفحهٔ ما را فالو داشته باشید و بعد روی دکمهٔ زیر بزنید. 🙏';
+const DEFAULT_FOLLOW_BUTTON = 'فالو کردم ✅';
+
+/** Button title for the follow gate; falls back to the Persian default. */
+function followButtonTitle(trigger: { followButtonLabel?: string | null } | null): string {
+  return trigger?.followButtonLabel?.trim() || DEFAULT_FOLLOW_BUTTON;
+}
+
 const RESUME_PREFIX = '__resume:';
 
 function resumeToken(automationId: string, fromOrder = 0): string {

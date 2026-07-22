@@ -366,6 +366,8 @@ model AutomationTrigger {
   /// When true, non-followers get followPrompt instead of the response steps.
   requireFollow Boolean          @default(false)
   followPrompt  String?
+  /// Label of the "I followed" button on the follow-gate prompt (localizable).
+  followButtonLabel String?
   /// Public reply variants; one is picked at random so replies look human.
   publicReplies String[]         @default([])
   createdAt     DateTime         @default(now())

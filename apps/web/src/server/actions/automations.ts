@@ -39,6 +39,8 @@ const createSchema = z.object({
   /** Checkbox: only answer contacts who follow the page. */
   requireFollow: z.string().optional(),
   followPrompt: z.string().optional(),
+  /** Localizable label for the "I followed" button. */
+  followButtonLabel: z.string().optional(),
   priority: z.coerce.number().int().min(0).default(0),
   cooldownSeconds: z.coerce.number().int().min(0).default(0),
 });
@@ -62,6 +64,7 @@ type TriggerData = {
   publicReplies: string[];
   requireFollow: boolean;
   followPrompt: string | null;
+  followButtonLabel: string | null;
 };
 
 /**
@@ -104,6 +107,7 @@ function deriveTrigger(
       publicReplies: isComment ? parseLines(d.publicReplies) : [],
       requireFollow: d.requireFollow === 'on',
       followPrompt: d.followPrompt?.trim() || null,
+      followButtonLabel: d.followButtonLabel?.trim().slice(0, 20) || null,
     },
   };
 }
