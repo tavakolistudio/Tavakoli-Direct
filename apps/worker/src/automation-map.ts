@@ -23,6 +23,7 @@ export function toAutomationDef(
         ? { mode: t.matchMode as KeywordMatchMode, keywords: t.keywords }
         : undefined,
       mediaId: t?.mediaId ?? null,
+      matchAnyComment: t?.matchAnyComment ?? false,
       capabilityAvailable: t?.type === 'STORY_REPLY_KEYWORD' ? opts.storyReplyAvailable : true,
     },
   };

@@ -70,6 +70,7 @@ export default async function AutomationEditPage({
               requireFollow: automation.trigger?.requireFollow ?? false,
               followPrompt: automation.trigger?.followPrompt ?? '',
               mediaId: automation.trigger?.mediaId ?? '',
+              matchAnyComment: automation.trigger?.matchAnyComment ?? false,
               publicReplies: (automation.trigger?.publicReplies?.length
                 ? automation.trigger.publicReplies
                 : [automation.trigger?.publicReply].filter(Boolean)

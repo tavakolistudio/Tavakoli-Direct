@@ -145,7 +145,15 @@ export default async function AutomationDetailPage({
               <div>کلمات کلیدی: {automation.trigger.keywords.join('، ')}</div>
             ) : null}
             {automation.trigger?.type === 'COMMENT_KEYWORD' ? (
-              automation.trigger.mediaId ? (
+              automation.trigger.matchAnyComment ? (
+                <div className="rounded-lg bg-blue-50 px-3 py-2 text-blue-900">
+                  به هر کامنتی زیر پست انتخاب‌شده پاسخ می‌دهد (بدون نیاز به کلمهٔ کلیدی)
+                  <span dir="ltr" className="mr-1 text-xs text-blue-700">
+                    ({automation.trigger.mediaId})
+                  </span>
+                  .
+                </div>
+              ) : automation.trigger.mediaId ? (
                 <div className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">
                   ⚠️ فقط روی کامنت‌های یک پست خاص کار می‌کند
                   <span dir="ltr" className="mr-1 text-xs text-amber-700">

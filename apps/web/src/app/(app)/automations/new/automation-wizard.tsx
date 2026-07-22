@@ -52,7 +52,9 @@ export function AutomationWizard({
   const [state, action] = useActionState<AutomationFormState, FormData>(createAutomationAction, {});
   const [triggerType, setTriggerType] = useState('DM_KEYWORD');
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
+  const [matchAny, setMatchAny] = useState(false);
   const isKeyword = KEYWORD_TRIGGERS.includes(triggerType);
+  const isComment = triggerType === 'COMMENT_KEYWORD';
 
   return (
     <form action={action} className="space-y-4">
@@ -101,16 +103,37 @@ export function AutomationWizard({
 
       {isKeyword ? (
         <Step n={3} title="تعریف شرط">
-          <Label htmlFor="matchMode">نوع تطابق</Label>
-          <Select id="matchMode" name="matchMode" defaultValue="CONTAINS">
-            {Object.entries(MATCH_MODE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-          <Label htmlFor="keywords">کلمات کلیدی (با کاما یا خط جدید جدا کنید)</Label>
-          <Textarea id="keywords" name="keywords" placeholder="قیمت، هزینه، تعرفه" />
+          {isComment ? (
+            <>
+              <label className="flex items-center gap-2 text-sm text-neutral-800">
+                <input
+                  type="checkbox"
+                  name="matchAnyComment"
+                  checked={matchAny}
+                  onChange={(e) => setMatchAny(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                به هر کامنتی زیر پست انتخاب‌شده پاسخ داده شود (بدون کلمهٔ کلیدی)
+              </label>
+              <p className="text-xs text-neutral-500">
+                برای این حالت، در گام بعد حتماً یک پست مشخص انتخاب کنید.
+              </p>
+            </>
+          ) : null}
+          {isComment && matchAny ? null : (
+            <>
+              <Label htmlFor="matchMode">نوع تطابق</Label>
+              <Select id="matchMode" name="matchMode" defaultValue="CONTAINS">
+                {Object.entries(MATCH_MODE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+              <Label htmlFor="keywords">کلمات کلیدی (با کاما یا خط جدید جدا کنید)</Label>
+              <Textarea id="keywords" name="keywords" placeholder="قیمت، هزینه، تعرفه" />
+            </>
+          )}
           <label className="flex items-center gap-2 text-sm text-neutral-800">
             <input type="checkbox" name="requireFollow" className="h-4 w-4" />
             فقط به دنبال‌کنندگان پیج پاسخ داده شود (فالو اجباری)

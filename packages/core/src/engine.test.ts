@@ -84,4 +84,67 @@ describe('evaluate', () => {
     const res = evaluate(event, [story], emptyCtx);
     expect(res.winner).toBeNull();
   });
+
+  it('matches any comment on the locked post when matchAnyComment is set', () => {
+    const anyComment: AutomationDef = {
+      automationId: 'anycomment',
+      name: 'هر کامنت',
+      isActive: true,
+      priority: 0,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      trigger: { triggerType: 'COMMENT_KEYWORD', mediaId: 'post123', matchAnyComment: true },
+      cooldownSeconds: 0,
+      maxExecutionsPerContact: null,
+    };
+    const comment = (text: string, mediaId: string): NormalizedInstagramEvent => ({
+      kind: 'COMMENT',
+      providerAccountId: 'acc1',
+      senderScopedId: 'u1',
+      text,
+      mediaId,
+      commentId: 'c1',
+    });
+
+    // Any text matches on the right post — even with no keyword.
+    expect(evaluate(comment('👍', 'post123'), [anyComment], emptyCtx).winner?.automationId).toBe(
+      'anycomment',
+    );
+    // A comment on a different post is still ignored.
+    expect(evaluate(comment('سلام', 'other'), [anyComment], emptyCtx).winner).toBeNull();
+  });
+
+  it('prefers a keyword comment rule over any-comment on the same post', () => {
+    const base = {
+      isActive: true,
+      priority: 0,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      cooldownSeconds: 0,
+      maxExecutionsPerContact: null,
+    };
+    const anyComment: AutomationDef = {
+      ...base,
+      automationId: 'any',
+      name: 'هر کامنت',
+      trigger: { triggerType: 'COMMENT_KEYWORD', mediaId: 'post123', matchAnyComment: true },
+    };
+    const keyword: AutomationDef = {
+      ...base,
+      automationId: 'kw',
+      name: 'کلیدواژه',
+      trigger: {
+        triggerType: 'COMMENT_KEYWORD',
+        mediaId: 'post123',
+        keywordRule: { mode: 'CONTAINS', keywords: ['قیمت'] },
+      },
+    };
+    const event: NormalizedInstagramEvent = {
+      kind: 'COMMENT',
+      providerAccountId: 'acc1',
+      senderScopedId: 'u1',
+      text: 'قیمت چنده؟',
+      mediaId: 'post123',
+      commentId: 'c1',
+    };
+    expect(evaluate(event, [anyComment, keyword], emptyCtx).winner?.automationId).toBe('kw');
+  });
 });

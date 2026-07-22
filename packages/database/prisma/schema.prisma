@@ -359,6 +359,8 @@ model AutomationTrigger {
   keywords      String[]
   // For COMMENT_KEYWORD: optional specific post/reel and public reply text.
   mediaId       String?
+  /// COMMENT_KEYWORD only: match ANY comment (ignore keywords). Needs mediaId.
+  matchAnyComment Boolean        @default(false)
   /// Legacy single public reply. Kept for existing rows; prefer publicReplies.
   publicReply   String?
   /// When true, non-followers get followPrompt instead of the response steps.

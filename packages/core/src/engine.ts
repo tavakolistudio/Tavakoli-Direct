@@ -26,6 +26,12 @@ export interface AutomationTriggerDef {
   keywordRule?: KeywordRule;
   /** For COMMENT_KEYWORD: restrict to a specific media/post id (more specific). */
   mediaId?: string | null;
+  /**
+   * For COMMENT_KEYWORD: when true, ANY comment matches (keywords are ignored).
+   * Only meaningful with a mediaId set — a page-wide any-comment rule would
+   * answer every comment on every post, which is never what's wanted.
+   */
+  matchAnyComment?: boolean;
   /** Provider capability gate (e.g. story replies). If false, the trigger is skipped. */
   capabilityAvailable?: boolean;
 }
@@ -133,6 +139,16 @@ function evaluateTrigger(
           specificity: 0,
         };
       }
+      // "Any comment on this post" mode: no keyword needed. Deliberately the
+      // LEAST specific comment match, so a keyword rule on the same post still
+      // wins when both apply.
+      if (t.matchAnyComment) {
+        return {
+          matched: true,
+          result: { matched: true, reason: 'any comment on post', matchedKeyword: undefined },
+          specificity: t.mediaId ? 2 : 0,
+        };
+      }
       if (!t.keywordRule) {
         return {
           matched: false,
@@ -141,8 +157,9 @@ function evaluateTrigger(
         };
       }
       const r = matchKeyword(event.text ?? '', t.keywordRule);
-      // A post-specific rule is more specific than an any-post rule.
-      const specificity = (MODE_SPECIFICITY[t.keywordRule.mode] ?? 1) + (t.mediaId ? 2 : 0);
+      // A post-specific rule is more specific than an any-post rule; and a
+      // keyword rule is more specific than any-comment (+1).
+      const specificity = (MODE_SPECIFICITY[t.keywordRule.mode] ?? 1) + 1 + (t.mediaId ? 2 : 0);
       return { matched: r.matched, result: r, specificity };
     }
     case 'OUTSIDE_BUSINESS_HOURS': {

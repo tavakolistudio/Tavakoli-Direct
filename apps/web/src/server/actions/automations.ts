@@ -32,6 +32,8 @@ const createSchema = z.object({
   steps: z.string().min(1, 'حداقل یک گام پاسخ لازم است.'),
   /** COMMENT_KEYWORD only: limit to one post, and optionally reply publicly too. */
   mediaId: z.string().optional(),
+  /** COMMENT_KEYWORD only: answer ANY comment on that post (no keyword). */
+  matchAnyComment: z.string().optional(),
   /** One variant per line; a random one is used for each comment. */
   publicReplies: z.string().optional(),
   /** Checkbox: only answer contacts who follow the page. */
@@ -47,6 +49,63 @@ function parseLines(raw: string | undefined): string[] {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+type TriggerType = z.infer<typeof createSchema>['triggerType'];
+
+type TriggerData = {
+  type: TriggerType;
+  matchMode: 'EXACT' | 'CONTAINS' | 'STARTS_WITH' | 'ANY_OF' | null;
+  keywords: string[];
+  mediaId: string | null;
+  matchAnyComment: boolean;
+  publicReplies: string[];
+  requireFollow: boolean;
+  followPrompt: string | null;
+};
+
+/**
+ * Validates and shapes the trigger fields shared by create and update. The
+ * keyword requirement is waived for "any comment on this post" mode, which in
+ * turn requires a post to be chosen — a page-wide any-comment rule would answer
+ * every comment on every post.
+ */
+function deriveTrigger(
+  d: Omit<z.infer<typeof createSchema>, 'instagramAccountId'>,
+): { data: TriggerData } | { error: string } {
+  const isKeyword = (KEYWORD_TRIGGERS as readonly string[]).includes(d.triggerType);
+  const isComment = d.triggerType === 'COMMENT_KEYWORD';
+  const matchAnyComment = isComment && d.matchAnyComment === 'on';
+  const mediaId = isComment ? d.mediaId?.trim() || null : null;
+
+  const keywords = isKeyword
+    ? (d.keywords ?? '')
+        .split(/[,،\n]/)
+        .map((k) => k.trim())
+        .filter(Boolean)
+    : [];
+
+  if (matchAnyComment && !mediaId) {
+    return {
+      error: 'برای «پاسخ به هر کامنت»، باید یک پست مشخص انتخاب کنید تا فقط زیر همان پست فعال شود.',
+    };
+  }
+  if (isKeyword && keywords.length === 0 && !matchAnyComment) {
+    return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
+  }
+
+  return {
+    data: {
+      type: d.triggerType,
+      matchMode: isKeyword && !matchAnyComment ? (d.matchMode ?? 'CONTAINS') : null,
+      keywords: matchAnyComment ? [] : keywords,
+      mediaId,
+      matchAnyComment,
+      publicReplies: isComment ? parseLines(d.publicReplies) : [],
+      requireFollow: d.requireFollow === 'on',
+      followPrompt: d.followPrompt?.trim() || null,
+    },
+  };
 }
 
 /** Action types the worker actually implements; anything else is rejected. */
@@ -195,17 +254,8 @@ export async function createAutomationAction(
   });
   if (!account) return { error: 'پیج یافت نشد.' };
 
-  const isKeyword = (KEYWORD_TRIGGERS as readonly string[]).includes(d.triggerType);
-  const keywords = isKeyword
-    ? (d.keywords ?? '')
-        .split(/[,،\n]/)
-        .map((k) => k.trim())
-        .filter(Boolean)
-    : [];
-
-  if (isKeyword && keywords.length === 0) {
-    return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
-  }
+  const trigger = deriveTrigger(d);
+  if ('error' in trigger) return { error: trigger.error };
 
   const parsedSteps = parseSteps(d.steps, d.triggerType === 'COMMENT_KEYWORD');
   if ('error' in parsedSteps) return { error: parsedSteps.error };
@@ -218,17 +268,7 @@ export async function createAutomationAction(
       status: 'DRAFT',
       priority: d.priority,
       cooldownSeconds: d.cooldownSeconds,
-      trigger: {
-        create: {
-          type: d.triggerType,
-          matchMode: isKeyword ? (d.matchMode ?? 'CONTAINS') : null,
-          keywords,
-          mediaId: d.triggerType === 'COMMENT_KEYWORD' ? d.mediaId?.trim() || null : null,
-          publicReplies: d.triggerType === 'COMMENT_KEYWORD' ? parseLines(d.publicReplies) : [],
-          requireFollow: d.requireFollow === 'on',
-          followPrompt: d.followPrompt?.trim() || null,
-        },
-      },
+      trigger: { create: trigger.data },
       steps: { create: parsedSteps.steps },
     },
   });
@@ -267,17 +307,8 @@ export async function updateAutomationAction(
   });
   if (!existing) return { error: 'اتوماسیون یافت نشد.' };
 
-  const isKeyword = (KEYWORD_TRIGGERS as readonly string[]).includes(d.triggerType);
-  const keywords = isKeyword
-    ? (d.keywords ?? '')
-        .split(/[,،\n]/)
-        .map((k) => k.trim())
-        .filter(Boolean)
-    : [];
-
-  if (isKeyword && keywords.length === 0) {
-    return { error: 'برای این نوع محرک، حداقل یک کلمه کلیدی لازم است.' };
-  }
+  const trigger = deriveTrigger(d);
+  if ('error' in trigger) return { error: trigger.error };
 
   const updateSteps = parseSteps(d.steps, d.triggerType === 'COMMENT_KEYWORD');
   if ('error' in updateSteps) return { error: updateSteps.error };
@@ -291,16 +322,7 @@ export async function updateAutomationAction(
     }),
     prisma.automationTrigger.update({
       where: { automationId: d.automationId },
-      data: {
-        type: d.triggerType,
-        matchMode: isKeyword ? (d.matchMode ?? 'CONTAINS') : null,
-        keywords,
-        mediaId: d.triggerType === 'COMMENT_KEYWORD' ? d.mediaId?.trim() || null : null,
-        publicReply: null,
-        publicReplies: d.triggerType === 'COMMENT_KEYWORD' ? parseLines(d.publicReplies) : [],
-        requireFollow: d.requireFollow === 'on',
-        followPrompt: d.followPrompt?.trim() || null,
-      },
+      data: { ...trigger.data, publicReply: null },
     }),
     prisma.automationStep.deleteMany({ where: { automationId: d.automationId } }),
     prisma.automationStep.createMany({

@@ -24,6 +24,7 @@ export interface AutomationEditValues {
   requireFollow: boolean;
   followPrompt: string;
   mediaId: string;
+  matchAnyComment: boolean;
   publicReplies: string;
 }
 
@@ -58,6 +59,7 @@ export function AutomationEditForm({
 }): React.ReactElement {
   const [state, action] = useActionState<AutomationFormState, FormData>(updateAutomationAction, {});
   const [triggerType, setTriggerType] = useState(values.triggerType);
+  const [matchAny, setMatchAny] = useState(values.matchAnyComment);
   const isKeyword = KEYWORD_TRIGGERS.includes(triggerType);
   const isComment = triggerType === 'COMMENT_KEYWORD';
 
@@ -90,16 +92,20 @@ export function AutomationEditForm({
 
         {isKeyword ? (
           <>
-            <Label htmlFor="matchMode">نوع تطابق</Label>
-            <Select id="matchMode" name="matchMode" defaultValue={values.matchMode}>
-              {Object.entries(MATCH_MODE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-            <Label htmlFor="keywords">کلمات کلیدی (با کاما یا خط جدید جدا کنید)</Label>
-            <Textarea id="keywords" name="keywords" defaultValue={values.keywords} />
+            {isComment && matchAny ? null : (
+              <>
+                <Label htmlFor="matchMode">نوع تطابق</Label>
+                <Select id="matchMode" name="matchMode" defaultValue={values.matchMode}>
+                  {Object.entries(MATCH_MODE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+                <Label htmlFor="keywords">کلمات کلیدی (با کاما یا خط جدید جدا کنید)</Label>
+                <Textarea id="keywords" name="keywords" defaultValue={values.keywords} />
+              </>
+            )}
             <label className="flex items-center gap-2 text-sm text-neutral-800">
               <input
                 type="checkbox"
@@ -125,6 +131,20 @@ export function AutomationEditForm({
         {isComment ? (
           <>
             <PostPicker accountId={values.accountId} initialMediaId={values.mediaId} />
+            <label className="flex items-center gap-2 text-sm text-neutral-800">
+              <input
+                type="checkbox"
+                name="matchAnyComment"
+                checked={matchAny}
+                onChange={(e) => setMatchAny(e.target.checked)}
+                className="h-4 w-4"
+              />
+              به هر کامنتی زیر این پست پاسخ داده شود (بدون کلمهٔ کلیدی)
+            </label>
+            <p className="text-xs text-neutral-500">
+              با این گزینه، هر کسی زیر پست انتخاب‌شده کامنت بگذارد پاسخ می‌گیرد. حتماً باید یک پست
+              مشخص انتخاب شده باشد.
+            </p>
             <Label htmlFor="publicReplies">پاسخ‌های عمومی زیر کامنت (اختیاری)</Label>
             <Textarea
               id="publicReplies"
