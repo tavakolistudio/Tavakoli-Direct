@@ -140,6 +140,9 @@ type StepRow = {
   config: Prisma.InputJsonValue;
 };
 
+/** Instagram's per-message text limit; longer messages are rejected at send. */
+const MAX_MESSAGE_LENGTH = 1000;
+
 const MESSAGE_STEP_TYPES = new Set([
   'SEND_TEXT',
   'SEND_QUICK_REPLIES',
@@ -199,6 +202,13 @@ function parseSteps(
     if (step.actionType === 'SEND_TEXT' || step.actionType === 'SEND_QUICK_REPLIES') {
       const text = (step.text ?? '').trim();
       if (!text) return { error: `متن گام ${index + 1} خالی است.` };
+      // Instagram rejects a message longer than ~1000 characters, so a too-long
+      // reply silently never reaches the user. Block it at save time instead.
+      if (text.length > MAX_MESSAGE_LENGTH) {
+        return {
+          error: `متن گام ${index + 1} خیلی طولانی است (${text.length} کاراکتر). اینستاگرام حداکثر ${MAX_MESSAGE_LENGTH} کاراکتر را در یک پیام ارسال می‌کند؛ متن را کوتاه‌تر کنید یا به چند گام تقسیم کنید.`,
+        };
+      }
       if (step.actionType === 'SEND_QUICK_REPLIES') {
         // Each line is "title" (posts that keyword back) or "title | url" (opens the link).
         const buttons: Array<{ title: string; url?: string }> = [];

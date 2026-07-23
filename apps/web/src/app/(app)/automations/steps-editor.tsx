@@ -44,6 +44,20 @@ const STEP_HINTS: Record<string, string> = {
 
 const NEWLINE = '\n';
 
+/** Instagram's per-message text limit; longer messages are rejected at send. */
+const MAX_MESSAGE_LENGTH = 1000;
+
+/** Small live character counter shown under a message textarea. */
+function CharCount({ text }: { text: string }): React.ReactElement {
+  const over = text.length > MAX_MESSAGE_LENGTH;
+  return (
+    <p className={`text-xs ${over ? 'text-red-600' : 'text-neutral-400'}`}>
+      {text.length.toLocaleString('fa-IR')} / {MAX_MESSAGE_LENGTH.toLocaleString('fa-IR')} کاراکتر
+      {over ? ' — اینستاگرام پیام‌های طولانی‌تر را ارسال نمی‌کند؛ کوتاه‌ترش کنید.' : ''}
+    </p>
+  );
+}
+
 /** Emojis that actually get used in sales replies, not a full picker. */
 const EMOJIS = ['😊', '🙏', '👋', '✅', '📩', '🔥', '💰', '🎁', '📞', '⏰', '👇', '❤️'];
 const BUTTONS_PLACEHOLDER = ['تعرفه‌ها', 'سایت ما | https://example.com', 'مشاوره رایگان'].join(
@@ -216,6 +230,7 @@ export function StepsEditor({
                 onChange={(e) => update(i, { text: e.target.value })}
                 placeholder="متن پیام…"
               />
+              <CharCount text={step.text ?? ''} />
               <div className="flex flex-wrap gap-1">
                 {EMOJIS.map((emoji) => (
                   <button
@@ -251,6 +266,7 @@ export function StepsEditor({
                 onChange={(e) => update(i, { text: e.target.value })}
                 placeholder="متن پیام…"
               />
+              <CharCount text={step.text ?? ''} />
               <div className="flex flex-wrap gap-1">
                 {EMOJIS.map((emoji) => (
                   <button
