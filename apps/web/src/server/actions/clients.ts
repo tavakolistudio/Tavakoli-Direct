@@ -125,3 +125,53 @@ export async function updateClientAction(
   revalidatePath(`/clients/${d.clientId}`);
   redirect(`/clients/${d.clientId}`);
 }
+
+export interface DeleteClientResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Removes a client from the panel without destroying its historical data.
+ * Connected accounts and automations are disabled in the same transaction so
+ * no automated replies can be sent after deletion.
+ */
+export async function deleteClientAction(clientId: string): Promise<DeleteClientResult> {
+  const admin = await requireAdmin();
+  const parsed = z.string().min(1).safeParse(clientId);
+  if (!parsed.success) return { ok: false, error: 'شناسهٔ مجموعه نامعتبر است.' };
+
+  const existing = await prisma.client.findFirst({
+    where: { id: parsed.data, deletedAt: null },
+    select: { id: true },
+  });
+  if (!existing) return { ok: false, error: 'مجموعه یافت نشد یا قبلاً حذف شده است.' };
+
+  const deletedAt = new Date();
+  await prisma.$transaction([
+    prisma.client.update({
+      where: { id: existing.id },
+      data: { isActive: false, deletedAt },
+    }),
+    prisma.instagramAccount.updateMany({
+      where: { clientId: existing.id, deletedAt: null },
+      data: { automationEnabled: false },
+    }),
+    prisma.automation.updateMany({
+      where: { clientId: existing.id, deletedAt: null },
+      data: { status: 'PAUSED' },
+    }),
+  ]);
+
+  await audit({
+    actorId: admin.id,
+    action: 'CLIENT_DELETE',
+    entityType: 'Client',
+    entityId: existing.id,
+    metadata: { softDelete: true },
+  });
+
+  revalidatePath('/clients');
+  revalidatePath(`/clients/${existing.id}`);
+  return { ok: true };
+}
