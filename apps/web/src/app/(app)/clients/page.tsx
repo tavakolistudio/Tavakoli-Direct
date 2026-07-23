@@ -5,6 +5,7 @@ import { formatDateFa } from '@/lib/dates';
 import { requireUser } from '@/lib/guards';
 import { clientScope } from '@/server/queries';
 import { prisma } from '@tavakoli/database';
+import { ClientRowActions } from './client-row-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,7 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                 <TH>اتوماسیون‌ها</TH>
                 <TH>وضعیت</TH>
                 <TH>تاریخ ایجاد</TH>
+                {user.role === 'ADMIN' ? <TH>عملیات</TH> : null}
               </TR>
             </THead>
             <tbody>
@@ -67,6 +69,11 @@ export default async function ClientsPage(): Promise<React.ReactElement> {
                     )}
                   </TD>
                   <TD>{formatDateFa(c.createdAt)}</TD>
+                  {user.role === 'ADMIN' ? (
+                    <TD>
+                      <ClientRowActions clientId={c.id} clientName={c.name} />
+                    </TD>
+                  ) : null}
                 </TR>
               ))}
             </tbody>

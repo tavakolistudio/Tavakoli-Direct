@@ -44,6 +44,14 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     return;
   }
 
+  // A deleted or disabled client must never keep processing Instagram events.
+  // Client deletion is intentionally reversible, so this guard stops work
+  // without physically destroying account, conversation, or message history.
+  if (account.deletedAt || account.client.deletedAt || !account.client.isActive) {
+    await markProcessed(webhookEvent.id, 'client/account disabled');
+    return;
+  }
+
   // Handle non-message signals first.
   if (event.kind === 'TOKEN_EXPIRED') {
     await prisma.instagramAccount.update({
