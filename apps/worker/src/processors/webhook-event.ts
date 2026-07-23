@@ -64,6 +64,21 @@ export async function processWebhookEvent(data: JobData): Promise<void> {
     return;
   }
 
+  // Ignore comments authored by the page itself. A public reply under a comment
+  // is itself a new comment, so Instagram webhooks it back; without this guard a
+  // page-wide "reply to any comment" automation would answer its own reply over
+  // and over — the multiple-replies-per-comment loop.
+  if (
+    event.kind === 'COMMENT' &&
+    (event.senderScopedId === account.providerAccountId ||
+      (event.senderUsername != null &&
+        account.username != null &&
+        event.senderUsername.toLowerCase() === account.username.toLowerCase()))
+  ) {
+    await markProcessed(webhookEvent.id, 'ignored self comment');
+    return;
+  }
+
   await prisma.instagramAccount.update({
     where: { id: account.id },
     data: { lastWebhookAt: new Date() },
