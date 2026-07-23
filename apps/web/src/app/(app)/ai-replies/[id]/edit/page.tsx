@@ -28,6 +28,7 @@ export default async function EditAiReplyPage({
   const config = (automation.steps[0]?.config ?? {}) as {
     knowledge?: string;
     language?: string;
+    replyMode?: string;
     instructions?: string;
     fallbackText?: string;
   };
@@ -46,6 +47,7 @@ export default async function EditAiReplyPage({
               automationId: automation.id,
               knowledge: config.knowledge,
               language: config.language,
+              replyMode: config.replyMode,
               instructions: config.instructions,
               fallbackText: config.fallbackText,
               mediaId: automation.trigger?.mediaId ?? null,

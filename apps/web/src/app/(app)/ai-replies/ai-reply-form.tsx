@@ -9,6 +9,7 @@ export interface AiReplyInitialValues {
   automationId?: string;
   knowledge?: string;
   language?: string;
+  replyMode?: string;
   instructions?: string;
   fallbackText?: string;
   mediaId?: string | null;
@@ -42,6 +43,7 @@ export function AiReplyForm({
   const [state, formAction] = useActionState<AiReplyFormState, FormData>(action, {});
   const [knowledge, setKnowledge] = useState(initial?.knowledge ?? '');
   const [language, setLanguage] = useState(initial?.language ?? 'auto');
+  const [replyMode, setReplyMode] = useState(initial?.replyMode ?? 'public');
   const [instructions, setInstructions] = useState(initial?.instructions ?? '');
   const [fallbackText, setFallbackText] = useState(initial?.fallbackText ?? '');
   const [postScope, setPostScope] = useState<'all' | 'post'>(initial?.mediaId ? 'post' : 'all');
@@ -86,6 +88,20 @@ export function AiReplyForm({
           هرچه دقیق‌تر بنویسید، پاسخ‌ها بهتر می‌شوند. هوش مصنوعی فقط بر اساس همین اطلاعات جواب
           می‌دهد.
         </p>
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="replyMode">نحوهٔ پاسخ‌دهی</Label>
+        <Select
+          id="replyMode"
+          name="replyMode"
+          value={replyMode}
+          onChange={(e) => setReplyMode(e.target.value)}
+        >
+          <option value="public">پاسخ عمومی زیر کامنت</option>
+          <option value="dm">دایرکت خصوصی برای کامنت‌گذار</option>
+          <option value="both">هم زیر کامنت، هم دایرکت</option>
+        </Select>
       </div>
 
       <div className="space-y-1">

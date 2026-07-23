@@ -675,21 +675,43 @@ async function applyStep(input: ApplyStepInput): Promise<void> {
         input.onHandoff();
         break;
       }
-      await createOutbound({
-        accountId: input.account.id,
-        conversationId: input.conversation.id,
-        contactId: input.contact.id,
-        kind: input.asPrivateReply ? 'privateReply' : 'sendText',
-        executionId: input.executionId,
-        stepIndex: idx,
-        payload: input.asPrivateReply
-          ? {
-              commentId: input.event.commentId,
-              text,
-              recipientScopedId: input.event.senderScopedId,
-            }
-          : { recipientScopedId: input.event.senderScopedId, text },
-      });
+      // Reply channel is operator-selectable: a public reply under the comment,
+      // a private DM, or both. Anything but 'dm'/'both' defaults to 'public'.
+      const replyMode =
+        cfg.replyMode === 'dm' || cfg.replyMode === 'both' ? cfg.replyMode : 'public';
+      const isComment = input.event.kind === 'COMMENT' && Boolean(input.event.commentId);
+
+      // Public reply posted under the comment itself.
+      if (isComment && (replyMode === 'public' || replyMode === 'both')) {
+        await createOutbound({
+          accountId: input.account.id,
+          conversationId: input.conversation.id,
+          contactId: input.contact.id,
+          kind: 'publicCommentReply',
+          executionId: input.executionId,
+          stepIndex: idx,
+          payload: { commentId: input.event.commentId, text },
+        });
+      }
+
+      // Private DM reply (also the only option for non-comment events).
+      if (replyMode === 'dm' || replyMode === 'both' || !isComment) {
+        await createOutbound({
+          accountId: input.account.id,
+          conversationId: input.conversation.id,
+          contactId: input.contact.id,
+          kind: input.asPrivateReply ? 'privateReply' : 'sendText',
+          executionId: input.executionId,
+          stepIndex: idx,
+          payload: input.asPrivateReply
+            ? {
+                commentId: input.event.commentId,
+                text,
+                recipientScopedId: input.event.senderScopedId,
+              }
+            : { recipientScopedId: input.event.senderScopedId, text },
+        });
+      }
       break;
     }
     case 'SEND_IMAGE':
