@@ -22,6 +22,8 @@ import { ensureAiSchema } from '@/server/ensure-ai-schema';
 const formSchema = z.object({
   knowledge: z.string().trim().min(10, 'اطلاعات/دانش کافی (حداقل ۱۰ کاراکتر) وارد کنید.'),
   language: z.enum(['auto', 'fa', 'tr', 'en']).default('auto'),
+  /** Where the reply goes: public reply under the comment, private DM, or both. */
+  replyMode: z.enum(['public', 'dm', 'both']).default('public'),
   instructions: z.string().optional(),
   fallbackText: z.string().optional(),
   postScope: z.enum(['all', 'post']).default('all'),
@@ -47,6 +49,7 @@ function stepConfig(d: z.infer<typeof formSchema>): Prisma.InputJsonValue {
     instructions: d.instructions?.trim() || undefined,
     fallbackText: d.fallbackText?.trim() || undefined,
     language: d.language,
+    replyMode: d.replyMode,
   };
 }
 
